@@ -11,12 +11,12 @@ import org.springframework.context.annotation.Configuration;
 
 @OpenAPIDefinition(
         info = @Info(
-                title = "Money Magnet API",
+                title = "Chat Connect - Spring Boot/API",
                 version = "v1",
-                description = "API REST para autenticacao, perfil, dashboard financeiro, contas, transacoes, categorias e integracao Pluggy.",
+                description = "API REST para estudos de arquitetura hexagonal e websockets.",
                 contact = @Contact(
-                        name = "Money Magnet",
-                        email = "support@moneymagnet.local"
+                        name = "Chat Connect",
+                        email = "example@gmail.com"
                 )
         ),
         servers = {

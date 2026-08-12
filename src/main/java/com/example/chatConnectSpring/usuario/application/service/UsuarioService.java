@@ -1,5 +1,6 @@
 package com.example.chatConnectSpring.usuario.application.service;
 
+import com.example.chatConnectSpring.shared.utils.GenerateToken;
 import com.example.chatConnectSpring.usuario.domain.model.UpdateEmailToken;
 import com.example.chatConnectSpring.usuario.domain.model.Usuario;
 import com.example.chatConnectSpring.usuario.domain.port.in.*;
@@ -7,18 +8,21 @@ import com.example.chatConnectSpring.usuario.domain.port.out.EmailSender;
 import com.example.chatConnectSpring.usuario.domain.port.out.UpdateEmailTokenRepository;
 import com.example.chatConnectSpring.usuario.domain.port.out.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.type.filter.RegexPatternTypeFilter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 public class UsuarioService implements
         CreateUsuarioUseCase,
         FindByIdUseCase,
         FindByEmailUseCase,
+        ConfirmEmailChangeUseCase,
         UpdateUsuarioUseCase,
         UpdatePasswordUseCase,
         DeleteUsuarioUseCase {
@@ -49,6 +53,12 @@ public class UsuarioService implements
         validateAvailable(username, email, null);
         
         Usuario usuario = new Usuario();
+        
+        String regex = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,17}$";
+        Pattern padraoPassword = Pattern.compile(regex);
+        
+        if (!padraoPassword.matcher(password).matches())
+            throw new CredenciaisInvalidasException("A senha deve conter números, letras maiúsculas e minúsculas, e caracteres especiais");
         
         usuario.setUsername(username);
         usuario.setEmail(email);
@@ -81,7 +91,7 @@ public class UsuarioService implements
     
     private void requestEmailChange(UUID userId, String newEmail) {
         
-        String token = UUID.randomUUID().toString();
+        String token = GenerateToken.generateSecureToken(32);
         
         LocalDateTime expiresAt =
                 LocalDateTime.now().plusMinutes(15);
@@ -109,6 +119,7 @@ public class UsuarioService implements
     }
     
     @Transactional
+    @Override
     public Usuario confirmEmailChange(UUID userId, String token) {
         
         UpdateEmailToken data =
