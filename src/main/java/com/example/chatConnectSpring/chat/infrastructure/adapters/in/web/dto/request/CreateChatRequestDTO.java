@@ -1,4 +1,4 @@
-package com.example.chatConnectSpring.chat.infrastructure.adapters.in.dto.request;
+package com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.request;
 
 import com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.chat.ChatTypeEnum;
 import jakarta.validation.constraints.NotBlank;

@@ -1,16 +1,13 @@
-package com.example.chatConnectSpring.chat.infrastructure.adapters.in;
+package com.example.chatConnectSpring.chat.infrastructure.adapters.in.web;
 
 import com.example.chatConnectSpring.chat.application.command.AddParticipantCommand;
 import com.example.chatConnectSpring.chat.application.command.CreateChatCommand;
 import com.example.chatConnectSpring.chat.application.mapper.ChatResponseMapper;
 import com.example.chatConnectSpring.chat.application.service.ChatService;
-import com.example.chatConnectSpring.chat.infrastructure.adapters.in.dto.request.AddParticipantRequestDTO;
-import com.example.chatConnectSpring.chat.infrastructure.adapters.in.dto.request.CreateChatRequestDTO;
-import com.example.chatConnectSpring.chat.infrastructure.adapters.in.dto.response.ChatParticipantResponseDTO;
-import com.example.chatConnectSpring.chat.infrastructure.adapters.in.dto.response.ChatResponseDTO;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.request.AddParticipantRequestDTO;
+import com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.request.CreateChatRequestDTO;
+import com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.response.ChatParticipantResponseDTO;
+import com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.response.ChatResponseDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,7 +31,7 @@ public class ChatController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ChatResponseDTO criar(@Valid @RequestBody CreateChatRequestDTO request) {
+    public ChatResponseDTO create(@Valid @RequestBody CreateChatRequestDTO request) {
         return ChatResponseMapper.toDTO(
                 chatService.create(new CreateChatCommand(
                         request.createdByUserId(),
@@ -45,13 +42,13 @@ public class ChatController {
     }
 
     @GetMapping("/{chatId}")
-    public ChatResponseDTO buscarPorId(@PathVariable UUID chatId) {
+    public ChatResponseDTO findById(@PathVariable UUID chatId) {
         return ChatResponseMapper.toDTO(chatService.findById(chatId));
     }
 
     @PostMapping("/{chatId}/participants")
     @ResponseStatus(HttpStatus.CREATED)
-    public ChatParticipantResponseDTO adicionarParticipante(
+    public ChatParticipantResponseDTO addParticipant(
             @PathVariable UUID chatId,
             @Valid @RequestBody AddParticipantRequestDTO request
     ) {

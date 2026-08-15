@@ -1,4 +1,4 @@
-package com.example.chatConnectSpring.chat.infrastructure.adapters.in.dto.request;
+package com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 

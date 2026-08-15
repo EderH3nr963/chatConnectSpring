@@ -1,4 +1,4 @@
-package com.example.chatConnectSpring.chat.infrastructure.adapters.in.dto.response;
+package com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.response;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

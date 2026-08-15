@@ -1,4 +1,4 @@
-package com.example.chatConnectSpring.auth.infrastructure.security;
+package com.example.chatConnectSpring.shared.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -21,17 +21,17 @@ public class JwtService {
         this.expiracaoMs = expiracaoMs;
     }
 
-    public String gerarToken(String email) {
+    public String generateToken(String id) {
         Date agora = new Date();
         return Jwts.builder()
-                .subject(email)
+                .subject(id)
                 .issuedAt(agora)
                 .expiration(new Date(agora.getTime() + expiracaoMs))
                 .signWith(chave)
                 .compact();
     }
 
-    public String extrairEmail(String token) {
+    public String extractId(String token) {
         return claims(token).getSubject();
     }
 

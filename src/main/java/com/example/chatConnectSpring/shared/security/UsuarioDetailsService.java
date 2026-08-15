@@ -1,8 +1,6 @@
-package com.example.chatConnectSpring.auth.infrastructure.security;
+package com.example.chatConnectSpring.shared.security;
 
 import com.example.chatConnectSpring.usuario.domain.port.out.UsuarioRepository;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;

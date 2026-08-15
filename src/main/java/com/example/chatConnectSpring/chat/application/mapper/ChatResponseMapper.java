@@ -2,8 +2,8 @@ package com.example.chatConnectSpring.chat.application.mapper;
 
 import com.example.chatConnectSpring.chat.domain.model.Chat;
 import com.example.chatConnectSpring.chat.domain.model.ChatParticipant;
-import com.example.chatConnectSpring.chat.infrastructure.adapters.in.dto.response.ChatParticipantResponseDTO;
-import com.example.chatConnectSpring.chat.infrastructure.adapters.in.dto.response.ChatResponseDTO;
+import com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.response.ChatParticipantResponseDTO;
+import com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.response.ChatResponseDTO;
 
 import java.util.List;
 

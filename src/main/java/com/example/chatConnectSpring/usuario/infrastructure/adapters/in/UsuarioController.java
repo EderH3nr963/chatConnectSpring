@@ -1,6 +1,6 @@
 package com.example.chatConnectSpring.usuario.infrastructure.adapters.in;
 
-import com.example.chatConnectSpring.auth.infrastructure.security.UserDetailsImpl;
+import com.example.chatConnectSpring.shared.security.UserDetailsImpl;
 import com.example.chatConnectSpring.usuario.application.mapper.UsuarioMapper;
 import com.example.chatConnectSpring.usuario.application.service.UsuarioService;
 import com.example.chatConnectSpring.usuario.domain.model.Usuario;

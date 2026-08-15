@@ -3,7 +3,7 @@ package com.example.chatConnectSpring.auth.application;
 import com.example.chatConnectSpring.auth.infrastructure.adapters.in.dto.AuthResponseDTO;
 import com.example.chatConnectSpring.auth.infrastructure.adapters.in.dto.CadastroRequestDTO;
 import com.example.chatConnectSpring.auth.infrastructure.adapters.in.dto.LoginRequestDTO;
-import com.example.chatConnectSpring.auth.infrastructure.security.JwtService;
+import com.example.chatConnectSpring.shared.security.JwtService;
 import com.example.chatConnectSpring.usuario.application.mapper.UsuarioMapper;
 import com.example.chatConnectSpring.usuario.application.service.UsuarioService;
 import com.example.chatConnectSpring.usuario.domain.model.Usuario;
@@ -26,7 +26,7 @@ public class AuthService {
 
     public AuthResponseDTO cadastrar(CadastroRequestDTO request) {
         Usuario usuario = usuarioService.create(request.username(), request.email(), request.password());
-        return resposta(usuario);
+        return response(usuario);
     }
 
     public AuthResponseDTO login(LoginRequestDTO request) {
@@ -36,10 +36,10 @@ public class AuthService {
         } catch (BadCredentialsException ex) {
             throw new BadCredentialsException("E-mail ou senha invalidos");
         }
-        return resposta(usuarioService.findByEmail(request.email()));
+        return response(usuarioService.findByEmail(request.email()));
     }
 
-    private AuthResponseDTO resposta(Usuario usuario) {
-        return new AuthResponseDTO(jwtService.gerarToken(usuario.getEmail()), UsuarioMapper.toDTO(usuario));
+    private AuthResponseDTO response(Usuario usuario) {
+        return new AuthResponseDTO(jwtService.generateToken(usuario.getId().toString()), UsuarioMapper.toDTO(usuario));
     }
 }

@@ -6,5 +6,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ChatParticipantJpaRepository extends JpaRepository<ChatParticipantEntity, UUID> {
-    Optional<ChatParticipantEntity> findByChat_IdAndUserId(UUID chatId, UUID userId);
+    Optional<ChatParticipantEntity> findByChatIdAndUserId(UUID chatId, UUID userId);
 }

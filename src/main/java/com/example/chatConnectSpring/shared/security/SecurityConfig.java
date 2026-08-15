@@ -1,4 +1,4 @@
-package com.example.chatConnectSpring.auth.infrastructure.security;
+package com.example.chatConnectSpring.shared.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

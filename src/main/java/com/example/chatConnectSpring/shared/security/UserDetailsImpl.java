@@ -1,9 +1,8 @@
-package com.example.chatConnectSpring.auth.infrastructure.security;
+package com.example.chatConnectSpring.shared.security;
 
 import com.example.chatConnectSpring.usuario.domain.model.Usuario;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.List;
