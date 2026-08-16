@@ -1,4 +1,4 @@
-package com.example.chatConnectSpring.chat.domain.port.in;
+package com.example.chatConnectSpring.chat.domain.port.in.chat;
 
 import com.example.chatConnectSpring.chat.domain.model.Chat;
 

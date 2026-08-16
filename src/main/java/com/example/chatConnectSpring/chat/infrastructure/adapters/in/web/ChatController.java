@@ -2,8 +2,8 @@ package com.example.chatConnectSpring.chat.infrastructure.adapters.in.web;
 
 import com.example.chatConnectSpring.chat.application.command.AddParticipantCommand;
 import com.example.chatConnectSpring.chat.application.command.CreateChatCommand;
-import com.example.chatConnectSpring.chat.application.mapper.ChatResponseMapper;
-import com.example.chatConnectSpring.chat.application.service.ChatService;
+import com.example.chatConnectSpring.chat.infrastructure.mapper.ChatResponseMapper;
+import com.example.chatConnectSpring.chat.domain.port.in.chat.AddParticipantUseCase;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.request.AddParticipantRequestDTO;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.request.CreateChatRequestDTO;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.web.dto.response.ChatParticipantResponseDTO;
@@ -53,7 +53,7 @@ public class ChatController {
             @Valid @RequestBody AddParticipantRequestDTO request
     ) {
         return ChatResponseMapper.toDTO(
-                chatService.addParticipant(new AddParticipantCommand(chatId, request.userId()))
+                AddParticipantUseCase.addParticipant(new AddParticipantCommand(chatId, request.userId()))
         );
     }
 }

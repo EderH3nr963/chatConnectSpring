@@ -1,4 +1,4 @@
-package com.example.chatConnectSpring.chat.application.mapper;
+package com.example.chatConnectSpring.chat.infrastructure.mapper;
 
 import com.example.chatConnectSpring.chat.domain.model.Chat;
 import com.example.chatConnectSpring.chat.domain.model.ChatParticipant;

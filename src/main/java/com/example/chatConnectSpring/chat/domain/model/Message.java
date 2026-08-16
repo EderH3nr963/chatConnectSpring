@@ -3,7 +3,7 @@ package com.example.chatConnectSpring.chat.domain.model;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public class ChatMessage {
+public class Message {
     private UUID id;
     private UUID chatId;
     private UUID userId;
@@ -20,10 +20,4 @@ public class ChatMessage {
     public void setUserId(UUID userId) { this.userId = userId; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
-    public boolean isDeleted() { return deleted; }
-    public void setDeleted(boolean deleted) { this.deleted = deleted; }
 }

@@ -1,11 +1,11 @@
 package com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence;
 
-import com.example.chatConnectSpring.chat.application.mapper.ChatMapper;
-import com.example.chatConnectSpring.chat.application.mapper.ChatParticipantMapper;
+import com.example.chatConnectSpring.chat.infrastructure.mapper.ChatMapper;
+import com.example.chatConnectSpring.chat.infrastructure.mapper.ChatParticipantMapper;
 import com.example.chatConnectSpring.chat.domain.model.Chat;
 import com.example.chatConnectSpring.chat.domain.model.ChatParticipant;
-import com.example.chatConnectSpring.chat.domain.port.out.ChatParticipantRepository;
-import com.example.chatConnectSpring.chat.domain.port.out.ChatRepository;
+import com.example.chatConnectSpring.chat.domain.port.out.chat.ChatParticipantRepository;
+import com.example.chatConnectSpring.chat.domain.port.out.chat.ChatRepository;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.chat.ChatEntity;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.chat.ChatJpaRepository;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.chatParticipant.ChatParticipantEntity;
