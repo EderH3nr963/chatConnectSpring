@@ -11,10 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 
 @Service
-public class CreateChatService implements CreateChatUseCase {
+public class CreateChatUseCaseImpl implements CreateChatUseCase {
     private final ChatRepository chatRepository;
     
-    public CreateChatService(
+    public CreateChatUseCaseImpl(
             ChatRepository chatRepository
     ) {
         this.chatRepository = chatRepository;
@@ -31,7 +31,6 @@ public class CreateChatService implements CreateChatUseCase {
         chat.setCreatedByUserId(command.createdByUserId());
         chat.setTitle(command.title().trim());
         chat.setType(command.type() == null ? ChatTypeEnum.CHAT : command.type());
-        chat.setCreatedAt(OffsetDateTime.now());
         chat.setActive(true);
         
         return chatRepository.create(chat);

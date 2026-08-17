@@ -8,7 +8,6 @@ import com.example.chatConnectSpring.usuario.domain.port.out.EmailSender;
 import com.example.chatConnectSpring.usuario.domain.port.out.UpdateEmailTokenRepository;
 import com.example.chatConnectSpring.usuario.domain.port.out.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.type.filter.RegexPatternTypeFilter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,12 +71,17 @@ public class UsuarioService implements
     public Usuario update(UUID id, String username, String email) {
         
         Usuario usuario = findById(id);
+        boolean usernameChanged = false;
         
         validateAvailable(username, email, id);
         
         if (username != null && !username.equals(usuario.getUsername())) {
-            usuarioRepository.updateUsername(id, username);
             usuario.setUsername(username);
+            usernameChanged = true;
+        }
+
+        if (usernameChanged) {
+            usuarioRepository.save(usuario);
         }
         
         if (email == null || email.equals(usuario.getEmail()))
@@ -133,11 +137,8 @@ public class UsuarioService implements
         
         Usuario usuario = findById(data.getUserId());
         
-        usuarioRepository.updateEmail(
-                usuario.getId(),
-                data.getNewEmail()
-        );
         usuario.setEmail(data.getNewEmail());
+        usuarioRepository.save(usuario);
         
         updateEmailTokenRepository.markAsUsed(data.getId());
         
@@ -186,7 +187,8 @@ public class UsuarioService implements
             );
         }
         
-        usuarioRepository.updatePassword(id, newPassword);
+        usuario.setPassword(passwordEncoder.encode(newPassword));
+        usuarioRepository.save(usuario);
     }
     
     @Override
@@ -232,4 +234,3 @@ public class UsuarioService implements
         }
     }
 }
-

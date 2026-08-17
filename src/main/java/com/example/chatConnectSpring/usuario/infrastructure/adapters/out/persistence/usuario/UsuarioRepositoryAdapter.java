@@ -20,8 +20,15 @@ public class UsuarioRepositoryAdapter implements UsuarioRepository {
     public Usuario create(Usuario usuario) {
         UsuarioEntity usuarioEntity = UsuarioMapper.toEntity(usuario);
         
-        usuarioJpaRepository.save(usuarioEntity);
+        usuarioEntity = usuarioJpaRepository.save(usuarioEntity);
         
+        return UsuarioMapper.toDomain(usuarioEntity);
+    }
+
+    @Override
+    public Usuario save(Usuario usuario) {
+        UsuarioEntity usuarioEntity = UsuarioMapper.toEntity(usuario);
+        usuarioEntity = usuarioJpaRepository.save(usuarioEntity);
         return UsuarioMapper.toDomain(usuarioEntity);
     }
     
@@ -51,21 +58,6 @@ public class UsuarioRepositoryAdapter implements UsuarioRepository {
         UsuarioEntity usuarioEntity = usuarioJpaRepository.findByEmail(email).orElse(null);
         
         return UsuarioMapper.toDomain(usuarioEntity);
-    }
-    
-    @Override
-    public void updateUsername(UUID id, String username) {
-        usuarioJpaRepository.updateUsername(id, username);
-    }
-    
-    @Override
-    public void updateEmail(UUID id, String newEmail) {
-        usuarioJpaRepository.updateEmail(id, newEmail);
-    }
-    
-    @Override
-    public void updatePassword(UUID id, String newPassword) {
-        usuarioJpaRepository.updatePassword(id, newPassword);
     }
     
     @Override

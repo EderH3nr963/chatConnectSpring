@@ -9,10 +9,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
-public class FindChatByIdService implements FindChatByIdUseCase {
+public class FindChatByIdUseCaseImpl implements FindChatByIdUseCase {
     private final ChatRepository chatRepository;
     
-    public FindChatByIdService(
+    public FindChatByIdUseCaseImpl(
             ChatRepository chatRepository
     ) {
         this.chatRepository = chatRepository;

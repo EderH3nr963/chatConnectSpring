@@ -32,9 +32,15 @@ public class ChatParticipantEntity {
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
+    
+    @Column(name="participant_name", nullable = false)
+    private String participantName;
 
     @Column(nullable = false)
     private OffsetDateTime joinedAt = OffsetDateTime.now();
+    
+    @Column(nullable = false)
+    private ParticipantRole participantRole;
 
     private OffsetDateTime lastReadAt;
 

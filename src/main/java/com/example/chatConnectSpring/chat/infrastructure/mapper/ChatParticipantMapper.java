@@ -12,6 +12,8 @@ public class ChatParticipantMapper {
         entity.setMuted(participant.isMuted());
         entity.setBlocked(participant.isBlocked());
         entity.setUserId(participant.getUserId());
+        entity.setParticipantName(participant.getParticipantName());
+        entity.setParticipantRole(participant.getParticipantRole());
         return entity;
     }
 
@@ -25,6 +27,8 @@ public class ChatParticipantMapper {
         participant.setLastReadAt(entity.getLastReadAt());
         participant.setMuted(entity.isMuted());
         participant.setBlocked(entity.isBlocked());
+        participant.setParticipantName(entity.getParticipantName());
+        participant.setParticipantRole(entity.getParticipantRole());
         return participant;
     }
 }

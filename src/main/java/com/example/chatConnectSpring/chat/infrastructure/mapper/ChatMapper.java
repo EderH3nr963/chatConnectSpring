@@ -23,8 +23,6 @@ public class ChatMapper {
         chat.setType(entity.getGroupType());
         chat.setTitle(entity.getTitle());
         chat.setCreatedByUserId(entity.getCreatedByUserId());
-        chat.setCreatedAt(entity.getCreatedAt());
-        chat.setUpdatedAt(entity.getUpdatedAt());
         chat.setActive(entity.isActive());
         return chat;
     }

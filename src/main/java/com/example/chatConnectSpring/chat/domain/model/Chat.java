@@ -23,9 +23,7 @@ public class Chat {
     public UUID getCreatedByUserId() { return createdByUserId; }
     public void setCreatedByUserId(UUID createdByUserId) { this.createdByUserId = createdByUserId; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
 }
