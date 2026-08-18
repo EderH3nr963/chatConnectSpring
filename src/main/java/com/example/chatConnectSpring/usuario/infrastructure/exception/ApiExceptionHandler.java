@@ -3,9 +3,9 @@ package com.example.chatConnectSpring.usuario.infrastructure.exception;
 import com.example.chatConnectSpring.usuario.application.service.ConflitoUsuarioException;
 import com.example.chatConnectSpring.usuario.application.service.CredenciaisInvalidasException;
 import com.example.chatConnectSpring.usuario.application.service.UsuarioNaoEncontradoException;
-import com.example.chatConnectSpring.chat.application.exception.ChatInvalidException;
-import com.example.chatConnectSpring.chat.application.exception.ChatNotFoundException;
-import com.example.chatConnectSpring.chat.application.exception.ForbbidenChatException;
+import com.example.chatConnectSpring.chat.application.exceptions.ChatAccessDeniedException;
+import com.example.chatConnectSpring.chat.application.exceptions.ChatNotFoundException;
+import com.example.chatConnectSpring.chat.application.exceptions.InvalidChatException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -36,7 +36,7 @@ public class ApiExceptionHandler {
         return response(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler({ChatInvalidException.class, ForbbidenChatException.class, IllegalArgumentException.class})
+    @ExceptionHandler({InvalidChatException.class, ChatAccessDeniedException.class, IllegalArgumentException.class})
     public ResponseEntity<Map<String, String>> badRequest(RuntimeException ex) {
         return response(HttpStatus.BAD_REQUEST, ex.getMessage());
     }

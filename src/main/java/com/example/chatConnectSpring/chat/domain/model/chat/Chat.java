@@ -1,5 +1,7 @@
 package com.example.chatConnectSpring.chat.domain.model.chat;
 
+import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipant;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
