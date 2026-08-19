@@ -9,22 +9,23 @@ import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParti
 import com.example.chatConnectSpring.chat.domain.ports.in.AddParticipantsUseCase;
 import com.example.chatConnectSpring.chat.domain.ports.in.RemoveParticipantUseCase;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatParticipantRepository;
-import com.example.chatConnectSpring.chat.domain.ports.out.ChatRepository;
 import com.example.chatConnectSpring.usuario.domain.model.Usuario;
 import com.example.chatConnectSpring.usuario.domain.port.in.FindByIdUseCase;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class ChatParticipantService implements AddParticipantsUseCase, RemoveParticipantUseCase {
-    private FindByIdUseCase findByIdUseCase;
-    private ChatParticipantRepository  chatParticipantRepository;
-    private RemoveParticipantUseCase removeParticipantUseCase;
-    private ChatRepository chatRepository;
+    private final FindByIdUseCase findUsuarioByIdUseCase;
+    private final ChatParticipantRepository  chatParticipantRepository;
+    
+    public ChatParticipantService(FindByIdUseCase findUsuarioByIdUseCase, ChatParticipantRepository  chatParticipantRepository) {
+        this.findUsuarioByIdUseCase = findUsuarioByIdUseCase;
+        this.chatParticipantRepository = chatParticipantRepository;
+    }
     
     @Override
     @Transactional
@@ -34,7 +35,7 @@ public class ChatParticipantService implements AddParticipantsUseCase, RemovePar
             participant.setUserId(addUserId);
             participant.setChatId(command.chatId());
             
-            Usuario usuario = findByIdUseCase.findById(userId);
+            Usuario usuario = findUsuarioByIdUseCase.findById(userId);
             participant.setName(usuario.getUsername());
             
             participant.setRole(ChatParticipantRole.DEFAULT);
@@ -54,7 +55,7 @@ public class ChatParticipantService implements AddParticipantsUseCase, RemovePar
         }
         
         if (myParticipant.getId().equals(participantId)) {
-            throw new ParticipantAccessDeniedException("You dont can remove your self");
+            throw new ParticipantAccessDeniedException("You don't can remove your self");
         }
         
         if (myParticipant.getRole().equals(ChatParticipantRole.DEFAULT)) {
@@ -63,7 +64,7 @@ public class ChatParticipantService implements AddParticipantsUseCase, RemovePar
         
         ChatParticipant participant = chatParticipantRepository.findById(participantId);
         if (participant == null) {
-            throw new ParticipantNotFoundException("Participant to be not found");
+            throw new ParticipantNotFoundException("Participant to be removed not found");
         }
         
         if (participant.getRole().equals(ChatParticipantRole.ADMIN)) {
