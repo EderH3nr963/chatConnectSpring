@@ -1,6 +1,7 @@
 package com.example.chatConnectSpring.shared.security;
 
-import com.example.chatConnectSpring.usuario.domain.model.Usuario;
+import com.example.chatConnectSpring.user.domain.model.User;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -11,17 +12,21 @@ import java.util.UUID;
 public class UserDetailsImpl implements UserDetails {
     
     private final UUID id;
+    private final String clerkUserId;
     private final String username;
-    private final String password;
     
-    public UserDetailsImpl(Usuario usuario) {
-        this.id = usuario.getId();
-        this.username = usuario.getEmail();
-        this.password = usuario.getPassword();
+    public UserDetailsImpl(User user) {
+        this.id = user.getId();
+        this.clerkUserId = user.getClerkUserId();
+        this.username = user.getEmail();
     }
     
     public UUID getId() {
         return id;
+    }
+
+    public String getClerkUserId() {
+        return clerkUserId;
     }
     
     @Override
@@ -30,8 +35,8 @@ public class UserDetailsImpl implements UserDetails {
     }
     
     @Override
-    public String getPassword() {
-        return password;
+    public @Nullable String getPassword() {
+        return "";
     }
     
     @Override

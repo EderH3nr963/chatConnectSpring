@@ -1,6 +1,6 @@
 package com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.chatParticipant;
 
-import com.example.chatConnectSpring.chat.application.mapper.ChatParticipantMapper;
+import com.example.chatConnectSpring.chat.infrastructure.mapper.ChatParticipantMapper;
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipant;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatParticipantRepository;
 import org.springframework.stereotype.Component;
@@ -21,24 +21,21 @@ public class ChatParticipantRepositoryAdapter implements ChatParticipantReposito
     }
 
     @Override
-    @Transactional
     public ChatParticipant save(ChatParticipant participant) {
+        if (participant == null) {
+            return null;
+        }
         ChatParticipantEntity entity = ChatParticipantMapper.toEntity(participant);
-        entity.setJoinedAt(entity.getJoinedAt() == null ? OffsetDateTime.now() : entity.getJoinedAt());
-
         return ChatParticipantMapper.toDomain(chatParticipantJpaRepository.save(entity));
     }
 
     @Override
-    @Transactional
     public List<ChatParticipant> saveAll(Collection<ChatParticipant> participants) {
+        if (participants == null || participants.isEmpty()) {
+            return List.of();
+        }
         List<ChatParticipantEntity> entities = participants.stream()
                 .map(ChatParticipantMapper::toEntity)
-                .peek(entity -> {
-                    if (entity.getJoinedAt() == null) {
-                        entity.setJoinedAt(OffsetDateTime.now());
-                    }
-                })
                 .toList();
 
         return chatParticipantJpaRepository.saveAll(entities).stream()
@@ -69,13 +66,16 @@ public class ChatParticipantRepositoryAdapter implements ChatParticipantReposito
     }
 
     @Override
-    @Transactional
     public void deleteById(UUID participantId) {
         chatParticipantJpaRepository.deleteById(participantId);
     }
-
+    
     @Override
-    @Transactional
+    public void deleteAllByChatId(UUID chatId) {
+        chatParticipantJpaRepository.deleteAllByChatId(chatId);
+    }
+    
+    @Override
     public void deleteByUserIdAndChatId(UUID userId, UUID chatId) {
         chatParticipantJpaRepository.deleteByUserIdAndChatId(userId, chatId);
     }

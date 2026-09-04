@@ -17,4 +17,11 @@ public interface ChatParticipantJpaRepository extends JpaRepository<ChatParticip
 
     @Modifying
     void deleteByUserIdAndChatId(UUID userId, UUID chatId);
+    
+    @Modifying
+    @Query("""
+        DELETE FROM ChatParticipantEntity c
+        WHERE c.chatId = :chatId
+    """)
+    void deleteAllByChatId(@Param("chatId") UUID chatId);
 }

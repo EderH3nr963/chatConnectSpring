@@ -3,6 +3,9 @@ package com.example.chatConnectSpring.chat.application.services;
 import com.example.chatConnectSpring.chat.application.commands.CreateGroupChatCommand;
 import com.example.chatConnectSpring.chat.application.commands.CreatePrivateChatCommand;
 import com.example.chatConnectSpring.chat.application.commands.UpdateChatCommand;
+import com.example.chatConnectSpring.chat.application.exceptions.ChatAccessDeniedException;
+import com.example.chatConnectSpring.chat.application.exceptions.ChatNotFoundException;
+import com.example.chatConnectSpring.chat.application.exceptions.InvalidChatException;
 import com.example.chatConnectSpring.chat.domain.model.chat.Chat;
 import com.example.chatConnectSpring.chat.domain.model.chat.ChatTypeEnum;
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipant;
@@ -10,13 +13,16 @@ import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParti
 import com.example.chatConnectSpring.chat.domain.ports.in.*;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatParticipantRepository;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatRepository;
-import com.example.chatConnectSpring.chat.application.exceptions.ChatAccessDeniedException;
-import com.example.chatConnectSpring.chat.application.exceptions.ChatNotFoundException;
-import com.example.chatConnectSpring.chat.application.exceptions.InvalidChatException;
+import com.example.chatConnectSpring.chat.domain.ports.in.DeleteMessagesByChatIdUseCase;
+import com.example.chatConnectSpring.user.domain.model.User;
+import com.example.chatConnectSpring.user.domain.port.in.FindByIdUseCase;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class ChatService implements
@@ -29,13 +35,18 @@ public class ChatService implements
     
     private final ChatRepository chatRepository;
     private final ChatParticipantRepository chatParticipantRepository;
+    private final DeleteMessagesByChatIdUseCase deleteMessagesByChatIdUseCase;
+    private final FindByIdUseCase findByIdUseCase;
     
     public ChatService(
             ChatRepository chatRepository,
-            ChatParticipantRepository chatParticipantRepository
+            ChatParticipantRepository chatParticipantRepository,
+            DeleteMessagesByChatIdUseCase deleteMessagesByChatIdUseCase, FindByIdUseCase findByIdUseCase
     ) {
         this.chatRepository = chatRepository;
         this.chatParticipantRepository = chatParticipantRepository;
+        this.deleteMessagesByChatIdUseCase = deleteMessagesByChatIdUseCase;
+        this.findByIdUseCase = findByIdUseCase;
     }
     
     @Override
@@ -60,7 +71,7 @@ public class ChatService implements
         adminParticipant.setChatId(chat.getId());
         participants.add(adminParticipant);
         
-        for (UUID participantUserId: command.participants()) {
+        for (UUID participantUserId : command.participants()) {
             ChatParticipant participant = new ChatParticipant();
             participant.setUserId(participantUserId);
             participant.setChatId(chat.getId());
@@ -111,19 +122,25 @@ public class ChatService implements
         adminParticipant.setChatId(chat.getId());
         adminParticipant.setRole(ChatParticipantRole.ADMIN);
         chatParticipantRepository.save(adminParticipant);
-
+        
+        User user = findByIdUseCase.findById(participantId);
+        if (user == null) {
+            throw new InvalidChatException("User does not exist.");
+        }
+        
         ChatParticipant participant = new ChatParticipant();
         participant.setUserId(participantId);
         participant.setChatId(chat.getId());
         participant.setRole(ChatParticipantRole.DEFAULT);
-        participant = chatParticipantRepository.save(participant);
-
-        chat.setTitle(participant.getName());
-
-        return chatRepository.update(chat);
+        chatParticipantRepository.save(participant);
+        
+        chat.setTitle(user.getUsername());
+        
+        return chat;
     }
     
     @Override
+    @Transactional(readOnly = true)
     public Chat findChatById(
             UUID userId,
             UUID chatId
@@ -153,8 +170,21 @@ public class ChatService implements
     }
     
     @Override
+    @Transactional(readOnly = true)
     public List<Chat> findChatsByUSerId(UUID userId) {
-        return chatRepository.findChatByUserId(userId);
+        return chatRepository.findChatByUserId(userId).stream().map(chat -> {
+            if (!chat.getChatType().equals(ChatTypeEnum.GROUP)) {
+                return chat;
+            }
+            
+            List<String> usernameParticipants = chatParticipantRepository.findByChatId(chat.getId()).stream()
+                    .filter(participant -> !participant.getUserId().equals(userId))
+                    .map(ChatParticipant::getUsername).toList();
+            
+            chat.setTitle(usernameParticipants.get(0));
+            
+            return chat;
+        }).toList();
     }
     
     @Override
@@ -183,13 +213,13 @@ public class ChatService implements
         }
         
         Chat chat = chatRepository.findById(command.chatId());
-
+        
         if (chat == null) {
             throw new ChatNotFoundException(
                     "Chat not found: " + command.chatId()
             );
         }
-
+        
         if (chat.getChatType() != ChatTypeEnum.GROUP) {
             return chat;
         }
@@ -233,6 +263,8 @@ public class ChatService implements
             );
         }
         
+        deleteMessagesByChatIdUseCase.deleteByChatId(chatId);
+        chatParticipantRepository.deleteAllByChatId(chatId);
         chatRepository.delete(chatId);
     }
 }

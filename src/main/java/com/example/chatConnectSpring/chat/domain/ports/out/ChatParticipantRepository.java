@@ -18,6 +18,8 @@ public interface ChatParticipantRepository {
     ChatParticipant findById(UUID participantId);
 
     void deleteById(UUID participantId);
+    
+    void deleteAllByChatId(UUID chatId);
 
     void deleteByUserIdAndChatId(UUID userId, UUID chatId);
 }

@@ -11,7 +11,16 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "chat_participant")
+@Table(
+        name = "chat_participant",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_chat_participant_user_chat", columnNames = {"chat_id", "user_id"}),
+        },
+        indexes = {
+                @Index(name = "idx_chat_participant_chat_id", columnList = "chat_id"),
+                @Index(name = "idx_chat_participant_user_id", columnList = "user_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,20 +29,21 @@ public class ChatParticipantEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-
-    private String name;
-
-    @Column(nullable = false)
+    
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
-
-    @Column(nullable = false)
+    
+    @Column(name = "chat_id", nullable = false)
     private UUID chatId;
-
+    
+    @Column(name = "unread_messages")
+    private int unreadMessages = 0;
+    
     private OffsetDateTime joinedAt;
-
+    
     @Enumerated(EnumType.STRING)
     private ChatParticipantRole role;
-
+    
     @PrePersist
     public void prePersist() {
         if (joinedAt == null) {

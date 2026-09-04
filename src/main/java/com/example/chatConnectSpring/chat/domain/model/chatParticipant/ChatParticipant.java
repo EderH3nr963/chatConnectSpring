@@ -5,12 +5,21 @@ import java.util.UUID;
 
 public class ChatParticipant {
     UUID id;
-    String name;
+    String username;
     UUID userId;
     UUID chatId;
+    int unreadMessages;
     OffsetDateTime joinedAt;
     ChatParticipantRole role;
-
+    
+    public String getUsername() {
+        return username;
+    }
+    
+    public void setUsername(String username) {
+        this.username = username;
+    }
+    
     public ChatParticipantRole getRole() {
         return role;
     }
@@ -27,14 +36,6 @@ public class ChatParticipant {
         this.id = id;
     }
     
-    public String getName() {
-        return name;
-    }
-    
-    public void setName(String name) {
-        this.name = name;
-    }
-    
     public UUID getUserId() {
         return userId;
     }
@@ -46,6 +47,10 @@ public class ChatParticipant {
     public UUID getChatId() {
         return chatId;
     }
+    
+    public int getUnreadMessages() { return unreadMessages; }
+    
+    public void setUnreadMessages(int unreadMessages) { this.unreadMessages = unreadMessages; }
     
     public void setChatId(UUID chatId) {
         this.chatId = chatId;

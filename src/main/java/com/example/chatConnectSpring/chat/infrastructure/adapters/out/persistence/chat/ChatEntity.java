@@ -21,9 +21,10 @@ public class ChatEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(nullable = true)
     private String title;
 
-    @Column(length = 1000)
+    @Column(length = 1000, nullable = true)
     private String description;
 
     @Enumerated(EnumType.STRING)

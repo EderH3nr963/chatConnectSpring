@@ -1,6 +1,6 @@
 package com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.chat;
 
-import com.example.chatConnectSpring.chat.application.mapper.ChatMapper;
+import com.example.chatConnectSpring.chat.infrastructure.mapper.ChatMapper;
 import com.example.chatConnectSpring.chat.domain.model.chat.Chat;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatRepository;
 import org.springframework.stereotype.Component;
@@ -20,30 +20,17 @@ public class ChatRepositoryAdapter implements ChatRepository {
     }
 
     @Override
-    @Transactional
     public Chat save(Chat chat) {
+        if (chat == null) {
+            return null;
+        }
         ChatEntity entity = ChatMapper.toEntity(chat);
-        entity.setCreatedAt(entity.getCreatedAt() == null ? OffsetDateTime.now() : entity.getCreatedAt());
-        entity.setUpdatedAt(entity.getUpdatedAt() == null ? OffsetDateTime.now() : entity.getUpdatedAt());
-
         return ChatMapper.toDomain(chatJpaRepository.save(entity));
     }
 
     @Override
-    @Transactional
     public Chat update(Chat chat) {
-        if (chat == null || chat.getId() == null) {
-            return null;
-        }
-
-        chatJpaRepository.updateChat(
-                chat.getId(),
-                chat.getTitle(),
-                chat.getDescription(),
-                chat.getChatType()
-        );
-
-        return findById(chat.getId());
+        return save(chat);
     }
 
     @Override
@@ -62,7 +49,6 @@ public class ChatRepositoryAdapter implements ChatRepository {
     }
 
     @Override
-    @Transactional
     public void delete(UUID chatId) {
         chatJpaRepository.deleteById(chatId);
     }
