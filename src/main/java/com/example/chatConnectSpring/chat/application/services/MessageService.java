@@ -2,13 +2,13 @@ package com.example.chatConnectSpring.chat.application.services;
 
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipant;
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipantRole;
-import com.example.chatConnectSpring.chat.domain.ports.in.*;
 import com.example.chatConnectSpring.chat.application.commands.EditMessageCommand;
 import com.example.chatConnectSpring.chat.application.commands.SendMessageCommand;
 import com.example.chatConnectSpring.chat.application.exceptions.InvalidMessageException;
 import com.example.chatConnectSpring.chat.application.exceptions.MessageAccessDeniedException;
 import com.example.chatConnectSpring.chat.application.exceptions.MessageNotFoundException;
 import com.example.chatConnectSpring.chat.domain.model.Message;
+import com.example.chatConnectSpring.chat.domain.ports.in.MessageUseCase;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatParticipantRepository;
 import com.example.chatConnectSpring.chat.domain.ports.out.MessageNotificationPort;
 import com.example.chatConnectSpring.chat.domain.ports.out.MessageRepository;
@@ -22,11 +22,7 @@ import java.util.UUID;
 
 @Service
 public class MessageService implements
-        SendMessageUseCase,
-        EditMessageUseCase,
-        DeleteMessageUseCase,
-        FindMessagesByChatIdUseCase,
-        DeleteMessagesByChatIdUseCase {
+        MessageUseCase {
 
     private final MessageRepository messageRepository;
     private final MessageNotificationPort messageNotificationPort;
@@ -68,7 +64,7 @@ public class MessageService implements
         Set<String> usersActiveInChat = presenceStateOutputPort.usersInChat(command.chatId().toString());
         
         List<ChatParticipant> participantsNonActiveInChat = allParticipantInChat.stream()
-                .filter(participant -> usersActiveInChat.contains(participant.getUserId().toString()))
+                .filter(participant -> !(usersActiveInChat.contains(participant.getUserId().toString())))
                 .peek(participant -> participant.setUnreadMessages(participant.getUnreadMessages() + 1)).toList();
         
         messageNotificationPort.notifyMessageSent(savedMessage, participantsNonActiveInChat);
@@ -88,7 +84,7 @@ public class MessageService implements
             throw new MessageNotFoundException("Message not found: " + command.messageId());
         }
 
-        ChatParticipant participant = chatParticipantRepository.findByUserIdAndChatId(userId, command.messageId());
+        ChatParticipant participant = chatParticipantRepository.findByUserIdAndChatId(userId, command.chatId());
         if (participant == null || !message.getSenderId().equals(participant.getId())) {
             throw new MessageAccessDeniedException("Only the author can edit this message.");
         }
@@ -116,7 +112,7 @@ public class MessageService implements
         boolean isAdmin = participant.getRole() == ChatParticipantRole.ADMIN;
         boolean isAuthor = message.getSenderId().equals(participant.getId());
         
-        if (!isAuthor || !isAdmin) {
+        if (!isAuthor && !isAdmin) {
                 throw new MessageAccessDeniedException("Only the message author or chat administrator can delete this message.");
         }
 
@@ -136,7 +132,6 @@ public class MessageService implements
     }
 
     @Override
-    @Transactional
     public void deleteByChatId(UUID chatId) {
         messageRepository.deleteByChatId(chatId);
     }

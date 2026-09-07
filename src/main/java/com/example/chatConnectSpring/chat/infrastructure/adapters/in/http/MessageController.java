@@ -3,10 +3,7 @@ package com.example.chatConnectSpring.chat.infrastructure.adapters.in.http;
 import com.example.chatConnectSpring.chat.application.commands.EditMessageCommand;
 import com.example.chatConnectSpring.chat.application.commands.SendMessageCommand;
 import com.example.chatConnectSpring.chat.domain.model.Message;
-import com.example.chatConnectSpring.chat.domain.ports.in.DeleteMessageUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.EditMessageUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.FindMessagesByChatIdUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.SendMessageUseCase;
+import com.example.chatConnectSpring.chat.domain.ports.in.MessageUseCase;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.http.dto.request.EditMessageRequestDTO;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.http.dto.request.SendMessageRequestDTO;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.http.dto.response.MessageResponseDTO;
@@ -34,10 +31,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class MessageController {
 
-    private final SendMessageUseCase sendMessageUseCase;
-    private final EditMessageUseCase editMessageUseCase;
-    private final DeleteMessageUseCase deleteMessageUseCase;
-    private final FindMessagesByChatIdUseCase findMessagesByChatIdUseCase;
+    private final MessageUseCase messageUseCase;
 
     @PostMapping
     @Operation(summary = "Enviar mensagem para um chat")
@@ -51,7 +45,7 @@ public class MessageController {
             @PathVariable UUID chatId,
             @Valid @RequestBody SendMessageRequestDTO dto
     ) {
-        Message message = sendMessageUseCase.send(
+        Message message = messageUseCase.send(
                 userDetails.getId(),
                 new SendMessageCommand(chatId, dto.content())
         );
@@ -68,7 +62,7 @@ public class MessageController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable UUID chatId
     ) {
-        List<MessageResponseDTO> messages = findMessagesByChatIdUseCase.findMessagesByChatId(userDetails.getId(), chatId)
+        List<MessageResponseDTO> messages = messageUseCase.findMessagesByChatId(userDetails.getId(), chatId)
                 .stream()
                 .map(MessageMapper::toDTO)
                 .toList();
@@ -89,9 +83,9 @@ public class MessageController {
             @PathVariable UUID messageId,
             @Valid @RequestBody EditMessageRequestDTO dto
     ) {
-        Message message = editMessageUseCase.edit(
+        Message message = messageUseCase.edit(
                 userDetails.getId(),
-                new EditMessageCommand(messageId, dto.content())
+                new EditMessageCommand(messageId, chatId, dto.content())
         );
         return ResponseEntity.ok(MessageMapper.toDTO(message));
     }
@@ -108,7 +102,7 @@ public class MessageController {
             @PathVariable UUID chatId,
             @PathVariable UUID messageId
     ) {
-        deleteMessageUseCase.delete(userDetails.getId(), messageId);
+        messageUseCase.delete(userDetails.getId(), messageId);
         return ResponseEntity.noContent().build();
     }
 }

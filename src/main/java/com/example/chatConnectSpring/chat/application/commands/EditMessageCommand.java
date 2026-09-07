@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record EditMessageCommand(
         UUID messageId,
+        UUID chatId,
         String content
 ) {
 }

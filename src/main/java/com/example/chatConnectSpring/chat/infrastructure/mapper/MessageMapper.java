@@ -30,6 +30,7 @@ public class MessageMapper {
         domain.setId(entity.getId());
         domain.setChatId(entity.getChatId());
         domain.setSenderId(entity.getSenderId());
+        domain.setSender(ChatParticipantMapper.toDomain(entity.getSender()));
         domain.setContent(entity.getContent());
         domain.setCreatedAt(entity.getCreatedAt());
         domain.setUpdatedAt(entity.getUpdatedAt());
@@ -45,6 +46,7 @@ public class MessageMapper {
                 domain.getId(),
                 domain.getChatId(),
                 domain.getSenderId(),
+                domain.getSender().getUsername(),
                 domain.getContent(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt()

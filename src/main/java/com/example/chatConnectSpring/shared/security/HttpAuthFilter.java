@@ -3,6 +3,7 @@ package com.example.chatConnectSpring.shared.security;
 import com.clerk.backend_api.helpers.security.AuthenticateRequest;
 import com.clerk.backend_api.helpers.security.models.AuthenticateRequestOptions;
 import com.clerk.backend_api.helpers.security.models.RequestState;
+import com.example.chatConnectSpring.user.application.exceptions.UserNotFoundException;
 import com.example.chatConnectSpring.user.domain.model.User;
 import com.example.chatConnectSpring.user.domain.port.in.UserIdentityProvider;
 import jakarta.servlet.FilterChain;
@@ -95,7 +96,7 @@ public class HttpAuthFilter extends OncePerRequestFilter {
             User user = userIdentityProvider.findByClerkUserId(clerkId);
             
             if (user == null) {
-                throw new UsernameNotFoundException("User not found for Clerk ID: " + clerkId);
+                throw new UserNotFoundException("User not found for Clerk ID: " + clerkId);
             }
             
             UserDetailsImpl userDetails = new UserDetailsImpl(user);

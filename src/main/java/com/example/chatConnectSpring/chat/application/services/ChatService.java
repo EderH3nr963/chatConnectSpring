@@ -10,10 +10,10 @@ import com.example.chatConnectSpring.chat.domain.model.chat.Chat;
 import com.example.chatConnectSpring.chat.domain.model.chat.ChatTypeEnum;
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipant;
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipantRole;
-import com.example.chatConnectSpring.chat.domain.ports.in.*;
+import com.example.chatConnectSpring.chat.domain.ports.in.ChatUseCase;
+import com.example.chatConnectSpring.chat.domain.ports.in.MessageUseCase;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatParticipantRepository;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatRepository;
-import com.example.chatConnectSpring.chat.domain.ports.in.DeleteMessagesByChatIdUseCase;
 import com.example.chatConnectSpring.user.domain.model.User;
 import com.example.chatConnectSpring.user.domain.port.in.FindByIdUseCase;
 import org.springframework.stereotype.Service;
@@ -25,27 +25,22 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-public class ChatService implements
-        CreateGroupChatUseCase,
-        CreatePrivateChatUseCase,
-        FindChatByIdUseCase,
-        FindChatsByUserIdUseCase,
-        UpdateChatUseCase,
-        DeleteChatUseCase {
+public class ChatService implements ChatUseCase {
     
     private final ChatRepository chatRepository;
     private final ChatParticipantRepository chatParticipantRepository;
-    private final DeleteMessagesByChatIdUseCase deleteMessagesByChatIdUseCase;
+    private final MessageUseCase messageUseCase;
     private final FindByIdUseCase findByIdUseCase;
     
     public ChatService(
             ChatRepository chatRepository,
             ChatParticipantRepository chatParticipantRepository,
-            DeleteMessagesByChatIdUseCase deleteMessagesByChatIdUseCase, FindByIdUseCase findByIdUseCase
+            MessageUseCase messageUseCase,
+            FindByIdUseCase findByIdUseCase
     ) {
         this.chatRepository = chatRepository;
         this.chatParticipantRepository = chatParticipantRepository;
-        this.deleteMessagesByChatIdUseCase = deleteMessagesByChatIdUseCase;
+        this.messageUseCase = messageUseCase;
         this.findByIdUseCase = findByIdUseCase;
     }
     
@@ -93,23 +88,19 @@ public class ChatService implements
     ) {
         
         if (command.participants() == null ||
-                command.participants().users() == null ||
-                command.participants().users().size() != 1) {
-            
-            throw new InvalidChatException(
-                    "A private chat must have exactly one other participant."
-            );
+            command.participants().users() == null ||
+            command.participants().users().size() != 1
+        ) {
+         
+            throw new InvalidChatException("A private chat must have exactly one other participant.");
         }
         
         UUID participantId = command.participants()
                 .users()
                 .get(0);
         
-        if (userId.equals(participantId)) {
-            throw new InvalidChatException(
-                    "A private chat cannot be created with yourself."
-            );
-        }
+        if (userId.equals(participantId))
+            throw new InvalidChatException("A private chat cannot be created with yourself.");
         
         Chat chat = new Chat();
         
@@ -124,9 +115,8 @@ public class ChatService implements
         chatParticipantRepository.save(adminParticipant);
         
         User user = findByIdUseCase.findById(participantId);
-        if (user == null) {
+        if (user == null)
             throw new InvalidChatException("User does not exist.");
-        }
         
         ChatParticipant participant = new ChatParticipant();
         participant.setUserId(participantId);
@@ -146,25 +136,24 @@ public class ChatService implements
             UUID chatId
     ) {
         
-        ChatParticipant participant =
-                chatParticipantRepository.findByUserIdAndChatId(
-                        userId,
-                        chatId
-                );
+        ChatParticipant participant = chatParticipantRepository.findByUserIdAndChatId(userId, chatId);
         
-        if (participant == null) {
-            throw new ChatAccessDeniedException(
-                    "User does not have access to this chat."
-            );
-        }
+        if (participant == null)
+            throw new ChatAccessDeniedException("User does not have access to this chat.");
         
         Chat chat = chatRepository.findById(chatId);
         
-        if (chat == null) {
-            throw new ChatNotFoundException(
-                    "Chat not found: " + chatId
-            );
-        }
+        if (chat == null)
+            throw new ChatNotFoundException("Chat not found: " + chatId);
+        
+        if (chat.getChatType().equals(ChatTypeEnum.GROUP))
+            return chat;
+        
+        List<String> usernameParticipants = chatParticipantRepository.findByChatId(chat.getId()).stream()
+                .filter(participantOfChat -> !participantOfChat.getUserId().equals(userId))
+                .map(ChatParticipant::getUsername).toList();
+        
+        chat.setTitle(usernameParticipants.get(0));
         
         return chat;
     }
@@ -173,7 +162,7 @@ public class ChatService implements
     @Transactional(readOnly = true)
     public List<Chat> findChatsByUSerId(UUID userId) {
         return chatRepository.findChatByUserId(userId).stream().map(chat -> {
-            if (!chat.getChatType().equals(ChatTypeEnum.GROUP)) {
+            if (chat.getChatType().equals(ChatTypeEnum.GROUP)) {
                 return chat;
             }
             
@@ -194,35 +183,20 @@ public class ChatService implements
             UpdateChatCommand command
     ) {
         
-        ChatParticipant participant =
-                chatParticipantRepository.findByUserIdAndChatId(
-                        userId,
-                        command.chatId()
-                );
+        ChatParticipant participant = chatParticipantRepository.findByUserIdAndChatId(userId, command.chatId());
         
-        if (participant == null) {
-            throw new ChatAccessDeniedException(
-                    "User does not have access to this chat."
-            );
-        }
+        if (participant == null)
+            throw new ChatAccessDeniedException("User does not have access to this chat.");
         
-        if (participant.getRole() != ChatParticipantRole.ADMIN) {
-            throw new ChatAccessDeniedException(
-                    "Only administrators can update this chat."
-            );
-        }
+        if (participant.getRole() != ChatParticipantRole.ADMIN)
+            throw new ChatAccessDeniedException("Only administrators can update this chat.");
         
         Chat chat = chatRepository.findById(command.chatId());
         
-        if (chat == null) {
-            throw new ChatNotFoundException(
-                    "Chat not found: " + command.chatId()
-            );
-        }
+        if (chat == null) throw new ChatNotFoundException("Chat not found: " + command.chatId());
         
-        if (chat.getChatType() != ChatTypeEnum.GROUP) {
+        if (chat.getChatType() != ChatTypeEnum.GROUP)
             return chat;
-        }
         
         chat.setTitle(command.title());
         chat.setDescription(command.description());
@@ -237,33 +211,20 @@ public class ChatService implements
             UUID chatId
     ) {
         
-        ChatParticipant participant =
-                chatParticipantRepository.findByUserIdAndChatId(
-                        userId,
-                        chatId
-                );
+        ChatParticipant participant = chatParticipantRepository.findByUserIdAndChatId(userId, chatId);
         
-        if (participant == null) {
-            throw new ChatAccessDeniedException(
-                    "User does not have access to this chat."
-            );
-        }
+        if (participant == null)
+            throw new ChatAccessDeniedException("User does not have access to this chat.");
         
-        if (participant.getRole() != ChatParticipantRole.ADMIN) {
-            throw new ChatAccessDeniedException(
-                    "Only administrators can delete this chat."
-            );
-        }
+        if (participant.getRole() != ChatParticipantRole.ADMIN)
+            throw new ChatAccessDeniedException("Only administrators can delete this chat.");
         
         Chat chat = chatRepository.findById(chatId);
         
-        if (chat == null) {
-            throw new ChatNotFoundException(
-                    "Chat not found: " + chatId
-            );
-        }
+        if (chat == null)
+            throw new ChatNotFoundException("Chat not found: " + chatId);
         
-        deleteMessagesByChatIdUseCase.deleteByChatId(chatId);
+        messageUseCase.deleteByChatId(chatId);
         chatParticipantRepository.deleteAllByChatId(chatId);
         chatRepository.delete(chatId);
     }

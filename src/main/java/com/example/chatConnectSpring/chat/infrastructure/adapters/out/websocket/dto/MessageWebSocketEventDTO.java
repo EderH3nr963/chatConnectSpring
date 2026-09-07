@@ -8,19 +8,17 @@ public record MessageWebSocketEventDTO(
         String eventType,
         UUID chatId,
         UUID messageId,
-        MessageResponseDTO message,
-        UUID userId,
-        String userName
+        MessageResponseDTO message
 ) {
     public static MessageWebSocketEventDTO created(MessageResponseDTO message) {
-        return new MessageWebSocketEventDTO("MESSAGE_SENT", message.chatId(), message.id(), message, null, null);
+        return new MessageWebSocketEventDTO("MESSAGE_SENT", message.chatId(), message.id(), message);
     }
 
     public static MessageWebSocketEventDTO updated(MessageResponseDTO message) {
-        return new MessageWebSocketEventDTO("MESSAGE_EDITED", message.chatId(), message.id(), message, null, null);
+        return new MessageWebSocketEventDTO("MESSAGE_EDITED", message.chatId(), message.id(), message);
     }
 
     public static MessageWebSocketEventDTO deleted(UUID chatId, UUID messageId) {
-        return new MessageWebSocketEventDTO("MESSAGE_DELETED", chatId, messageId, null, null, null);
+        return new MessageWebSocketEventDTO("MESSAGE_DELETED", chatId, messageId, null);
     }
 }

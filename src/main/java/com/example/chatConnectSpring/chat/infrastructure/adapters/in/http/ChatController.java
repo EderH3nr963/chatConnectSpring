@@ -5,14 +5,7 @@ import com.example.chatConnectSpring.chat.application.commands.CreateGroupChatCo
 import com.example.chatConnectSpring.chat.application.commands.CreatePrivateChatCommand;
 import com.example.chatConnectSpring.chat.application.commands.UpdateChatCommand;
 import com.example.chatConnectSpring.chat.domain.model.chat.Chat;
-import com.example.chatConnectSpring.chat.domain.ports.in.AddParticipantsUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.CreateGroupChatUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.CreatePrivateChatUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.DeleteChatUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.FindChatByIdUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.FindChatsByUserIdUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.RemoveParticipantUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.UpdateChatUseCase;
+import com.example.chatConnectSpring.chat.domain.ports.in.*;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.http.dto.request.AddParticipantsRequestDTO;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.http.dto.request.CreateGroupChatRequestDTO;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.http.dto.request.CreatePrivateChatRequestDTO;
@@ -41,14 +34,8 @@ import java.util.UUID;
 @RequestMapping("/api/chat")
 @AllArgsConstructor
 public class ChatController {
-    private final CreateGroupChatUseCase createGroupChatUseCase;
-    private final CreatePrivateChatUseCase createPrivateChatUseCase;
-    private final FindChatByIdUseCase findChatByIdUseCase;
-    private final FindChatsByUserIdUseCase findChatsByUserIdUseCase;
-    private final UpdateChatUseCase updateChatUseCase;
-    private final DeleteChatUseCase deleteChatUseCase;
-    private final AddParticipantsUseCase addParticipantsUseCase;
-    private final RemoveParticipantUseCase removeParticipantUseCase;
+    private final ChatUseCase chatUseCase;
+    private final ChatParticipantUseCase  chatParticipantUseCase;
 
     @PostMapping("/group")
     @Operation(summary = "Criar chat em grupo")
@@ -60,7 +47,7 @@ public class ChatController {
             @AuthenticationPrincipal UserDetailsImpl usuarioDetails,
             @Valid @RequestBody CreateGroupChatRequestDTO dto
     ) {
-        Chat chat = createGroupChatUseCase.createGroupChat(
+        Chat chat = chatUseCase.createGroupChat(
                 usuarioDetails.getId(),
                 new CreateGroupChatCommand(dto.title(), dto.description(), dto.participants())
         );
@@ -77,7 +64,7 @@ public class ChatController {
             @AuthenticationPrincipal UserDetailsImpl usuarioDetails,
             @Valid @RequestBody CreatePrivateChatRequestDTO dto
     ) {
-        Chat chat = createPrivateChatUseCase.createPrivateChat(
+        Chat chat = chatUseCase.createPrivateChat(
                 usuarioDetails.getId(),
                 new CreatePrivateChatCommand(new AddParticipantsCommand(dto.users(), null))
         );
@@ -90,7 +77,7 @@ public class ChatController {
             @ApiResponse(responseCode = "200", description = "Lista de chats", content = @Content(schema = @Schema(implementation = ChatResponseDTO.class)))
     })
     public ResponseEntity<List<ChatResponseDTO>> findAllByUser(@AuthenticationPrincipal UserDetailsImpl usuarioDetails) {
-        List<ChatResponseDTO> chats = findChatsByUserIdUseCase.findChatsByUSerId(usuarioDetails.getId())
+        List<ChatResponseDTO> chats = chatUseCase.findChatsByUSerId(usuarioDetails.getId())
                 .stream()
                 .map(ChatMapper::toDTO)
                 .toList();
@@ -107,7 +94,7 @@ public class ChatController {
             @AuthenticationPrincipal UserDetailsImpl usuarioDetails,
             @PathVariable UUID chatId
     ) {
-        Chat chat = findChatByIdUseCase.findChatById(usuarioDetails.getId(), chatId);
+        Chat chat = chatUseCase.findChatById(usuarioDetails.getId(), chatId);
         return ResponseEntity.ok(ChatMapper.toDTO(chat));
     }
 
@@ -123,7 +110,7 @@ public class ChatController {
             @PathVariable UUID chatId,
             @Valid @RequestBody UpdateChatRequestDTO dto
     ) {
-        Chat chat = updateChatUseCase.update(
+        Chat chat = chatUseCase.update(
                 usuarioDetails.getId(),
                 new UpdateChatCommand(dto.title(), dto.description(), chatId)
         );
@@ -141,7 +128,7 @@ public class ChatController {
             @AuthenticationPrincipal UserDetailsImpl usuarioDetails,
             @PathVariable UUID chatId
     ) {
-        deleteChatUseCase.delete(usuarioDetails.getId(), chatId);
+        chatUseCase.delete(usuarioDetails.getId(), chatId);
         return ResponseEntity.noContent().build();
     }
 
@@ -157,7 +144,7 @@ public class ChatController {
             @PathVariable UUID chatId,
             @Valid @RequestBody AddParticipantsRequestDTO dto
     ) {
-        addParticipantsUseCase.add(usuarioDetails.getId(), new AddParticipantsCommand(dto.users(), chatId));
+        chatParticipantUseCase.add(usuarioDetails.getId(), new AddParticipantsCommand(dto.users(), chatId));
         return ResponseEntity.noContent().build();
     }
 
@@ -173,7 +160,7 @@ public class ChatController {
             @PathVariable UUID chatId,
             @PathVariable UUID participantId
     ) {
-        removeParticipantUseCase.remove(usuarioDetails.getId(), participantId, chatId);
+        chatParticipantUseCase.remove(usuarioDetails.getId(), participantId, chatId);
         return ResponseEntity.noContent().build();
     }
 }

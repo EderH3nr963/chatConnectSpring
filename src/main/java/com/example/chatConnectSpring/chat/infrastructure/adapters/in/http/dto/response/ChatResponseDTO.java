@@ -1,5 +1,6 @@
 package com.example.chatConnectSpring.chat.infrastructure.adapters.in.http.dto.response;
 
+import com.example.chatConnectSpring.chat.domain.model.chat.Chat;
 import com.example.chatConnectSpring.chat.domain.model.chat.ChatTypeEnum;
 
 import java.time.OffsetDateTime;
@@ -15,4 +16,15 @@ public record ChatResponseDTO(
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {
+    public static ChatResponseDTO fromChat(Chat chat) {
+        return new ChatResponseDTO(
+                chat.getId(),
+                chat.getTitle(),
+                chat.getDescription(),
+                chat.getChatType(),
+                null,
+                chat.getCreatedAt(),
+                chat.getUpdatedAt()
+        );
+    }
 }

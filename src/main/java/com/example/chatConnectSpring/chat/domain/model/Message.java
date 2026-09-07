@@ -1,5 +1,7 @@
 package com.example.chatConnectSpring.chat.domain.model;
 
+import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipant;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -7,6 +9,7 @@ public class Message {
     private UUID id;
     private UUID chatId;
     private UUID senderId;
+    private ChatParticipant sender;
     private String content;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -46,7 +49,15 @@ public class Message {
     public void setSenderId(UUID senderId) {
         this.senderId = senderId;
     }
-
+    
+    public ChatParticipant getSender() {
+        return sender;
+    }
+    
+    public void setSender(ChatParticipant sender) {
+        this.sender = sender;
+    }
+    
     public String getContent() {
         return content;
     }

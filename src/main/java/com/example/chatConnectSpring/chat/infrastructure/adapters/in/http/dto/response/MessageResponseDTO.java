@@ -7,6 +7,7 @@ public record MessageResponseDTO(
         UUID id,
         UUID chatId,
         UUID senderId,
+        String username,
         String content,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt

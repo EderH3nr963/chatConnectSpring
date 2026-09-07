@@ -4,6 +4,7 @@ import com.example.chatConnectSpring.chat.application.commands.AddParticipantsCo
 
 import java.util.UUID;
 
-public interface AddParticipantsUseCase {
+public interface ChatParticipantUseCase {
     void add(UUID userId, AddParticipantsCommand command);
+    void remove(UUID userId, UUID participantId, UUID chatId);
 }

@@ -1,5 +1,6 @@
 package com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.message;
 
+import com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.chatParticipant.ChatParticipantEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -32,6 +33,10 @@ public class MessageEntity {
 
     @Column(name = "sender_id", nullable = false)
     private UUID senderId;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_id", insertable = false, updatable = false)
+    private ChatParticipantEntity sender;
 
     @Column(nullable = false, length = 4000)
     private String content;

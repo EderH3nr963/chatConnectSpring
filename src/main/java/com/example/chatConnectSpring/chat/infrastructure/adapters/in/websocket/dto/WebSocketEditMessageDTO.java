@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record WebSocketEditMessageDTO(
         UUID messageId,
+        UUID chatId,
         String content
 ) {
 }

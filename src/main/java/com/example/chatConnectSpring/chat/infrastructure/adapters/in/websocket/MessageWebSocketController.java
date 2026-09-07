@@ -2,9 +2,8 @@ package com.example.chatConnectSpring.chat.infrastructure.adapters.in.websocket;
 
 import com.example.chatConnectSpring.chat.application.commands.EditMessageCommand;
 import com.example.chatConnectSpring.chat.application.commands.SendMessageCommand;
-import com.example.chatConnectSpring.chat.domain.ports.in.DeleteMessageUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.EditMessageUseCase;
-import com.example.chatConnectSpring.chat.domain.ports.in.SendMessageUseCase;
+import com.example.chatConnectSpring.chat.application.services.MessageService;
+import com.example.chatConnectSpring.chat.domain.ports.in.MessageUseCase;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.websocket.dto.WebSocketDeleteMessageDTO;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.websocket.dto.WebSocketEditMessageDTO;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.websocket.dto.WebSocketSendMessageDTO;
@@ -19,39 +18,33 @@ import java.util.UUID;
 @Controller
 public class MessageWebSocketController {
 
-    private final SendMessageUseCase sendMessageUseCase;
-    private final EditMessageUseCase editMessageUseCase;
-    private final DeleteMessageUseCase deleteMessageUseCase;
+    private final MessageUseCase messageUseCase;
     private final WebSocketPrincipalResolver principalResolver;
 
     public MessageWebSocketController(
-            SendMessageUseCase sendMessageUseCase,
-            EditMessageUseCase editMessageUseCase,
-            DeleteMessageUseCase deleteMessageUseCase,
+            MessageUseCase messageUseCase,
             WebSocketPrincipalResolver principalResolver
     ) {
-        this.sendMessageUseCase = sendMessageUseCase;
-        this.editMessageUseCase = editMessageUseCase;
-        this.deleteMessageUseCase = deleteMessageUseCase;
+        this.messageUseCase = messageUseCase;
         this.principalResolver = principalResolver;
     }
     
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(Principal principal, @Payload WebSocketSendMessageDTO dto) {
         UUID userId = extractUserId(principal);
-        sendMessageUseCase.send(userId, new SendMessageCommand(dto.chatId(), dto.content()));
+        messageUseCase.send(userId, new SendMessageCommand(dto.chatId(), dto.content()));
     }
 
     @MessageMapping("/chat.editMessage")
     public void editMessage(Principal principal, @Payload WebSocketEditMessageDTO dto) {
         UUID userId = extractUserId(principal);
-        editMessageUseCase.edit(userId, new EditMessageCommand(dto.messageId(), dto.content()));
+        messageUseCase.edit(userId, new EditMessageCommand(dto.messageId(), dto.chatId(), dto.content()));
     }
 
     @MessageMapping("/chat.deleteMessage")
     public void deleteMessage(Principal principal, @Payload WebSocketDeleteMessageDTO dto) {
         UUID userId = extractUserId(principal);
-        deleteMessageUseCase.delete(userId, dto.messageId());
+        messageUseCase.delete(userId, dto.messageId());
     }
 
     private UUID extractUserId(Principal principal) {
