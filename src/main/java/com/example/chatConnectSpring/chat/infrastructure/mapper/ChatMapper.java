@@ -1,26 +1,29 @@
 package com.example.chatConnectSpring.chat.infrastructure.mapper;
 
 import com.example.chatConnectSpring.chat.domain.model.chat.Chat;
-import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipant;
+import com.example.chatConnectSpring.chat.domain.ports.out.StoragePort;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.chat.ChatEntity;
-import com.example.chatConnectSpring.chat.infrastructure.adapters.in.http.dto.response.ChatParticipantResponseDTO;
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.http.dto.response.ChatResponseDTO;
 
-import java.util.List;
+import java.time.Duration;
 
 public class ChatMapper {
+    private ChatMapper() {}
+
     public static ChatEntity toEntity(Chat chat) {
         if (chat == null) {
             return null;
         }
-
         ChatEntity entity = new ChatEntity();
         entity.setId(chat.getId());
-        entity.setTitle(chat.getTitle());
+        entity.setName(chat.getName());
+        entity.setAvatarKey(chat.getAvatarKey());
         entity.setDescription(chat.getDescription());
         entity.setChatType(chat.getChatType());
         entity.setCreatedAt(chat.getCreatedAt());
         entity.setUpdatedAt(chat.getUpdatedAt());
+        entity.setBlocked(chat.isBlocked());
+        entity.setBlockedAt(chat.getBlockedAt());
         return entity;
     }
 
@@ -28,51 +31,48 @@ public class ChatMapper {
         if (entity == null) {
             return null;
         }
-
         Chat domain = new Chat();
         domain.setId(entity.getId());
-        domain.setTitle(entity.getTitle());
+        domain.setName(entity.getName());
+        domain.setAvatarKey(entity.getAvatarKey());
         domain.setDescription(entity.getDescription());
         domain.setChatType(entity.getChatType());
         domain.setCreatedAt(entity.getCreatedAt());
         domain.setUpdatedAt(entity.getUpdatedAt());
+        domain.setBlocked(entity.isBlocked());
+        domain.setBlockedAt(entity.getBlockedAt());
         return domain;
     }
 
     public static ChatResponseDTO toDTO(Chat chat) {
+        return toDTO(chat, (StoragePort) null);
+    }
+
+    public static ChatResponseDTO toDTO(Chat chat, StoragePort storagePort) {
         if (chat == null) {
             return null;
         }
-
-        List<ChatParticipantResponseDTO> participants = chat.getParticipants() == null
-                ? null
-                : chat.getParticipants()
-                .stream()
-                .map(ChatMapper::toDTO)
-                .toList();
-
+        String avatarUrl = resolveAvatarUrl(chat.getAvatarKey(), storagePort);
+        String avatarKeyForDto = avatarUrl != null ? avatarUrl : chat.getAvatarKey();
+        
         return new ChatResponseDTO(
                 chat.getId(),
-                chat.getTitle(),
+                chat.getName(),
+                avatarKeyForDto,
                 chat.getDescription(),
                 chat.getChatType(),
-                participants,
                 chat.getCreatedAt(),
                 chat.getUpdatedAt()
         );
     }
 
-    private static ChatParticipantResponseDTO toDTO(ChatParticipant participant) {
-        if (participant == null) {
+    private static String resolveAvatarUrl(String avatarKey, StoragePort storagePort) {
+        if (storagePort == null || avatarKey == null || avatarKey.isBlank()) return null;
+        if (avatarKey.startsWith("http://") || avatarKey.startsWith("https://")) return avatarKey;
+        try {
+            return storagePort.generatePresignedDownloadUrl(avatarKey, Duration.ofMinutes(60));
+        } catch (Exception ignored) {
             return null;
         }
-
-        return new ChatParticipantResponseDTO(
-                participant.getId(),
-                participant.getUserId(),
-                participant.getChatId(),
-                participant.getJoinedAt(),
-                participant.getRole()
-        );
     }
 }

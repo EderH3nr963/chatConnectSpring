@@ -8,12 +8,20 @@ import java.util.UUID;
 
 public class Chat {
     private UUID id;
-    private String title;
+    private String name;
+    private String avatarKey;
     private String description;
     private ChatTypeEnum chatType;
     private List<ChatParticipant> participants;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private boolean blocked = false;
+    private OffsetDateTime blockedAt;
+
+    public boolean isBlocked() { return blocked; }
+    public void setBlocked(boolean blocked) { this.blocked = blocked; }
+    public OffsetDateTime getBlockedAt() { return blockedAt; }
+    public void setBlockedAt(OffsetDateTime blockedAt) { this.blockedAt = blockedAt; }
     
     public UUID getId() {
         return id;
@@ -23,12 +31,20 @@ public class Chat {
         this.id = id;
     }
     
-    public String getTitle() {
-        return title;
+    public String getName() {
+        return name;
     }
     
-    public void setTitle(String title) {
-        this.title = title;
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public String getAvatarKey() {
+        return avatarKey;
+    }
+    
+    public void setAvatarKey(String avatarKey) {
+        this.avatarKey = avatarKey;
     }
     
     public String getDescription() {

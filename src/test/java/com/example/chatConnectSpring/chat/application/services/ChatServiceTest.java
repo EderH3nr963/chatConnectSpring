@@ -2,7 +2,6 @@ package com.example.chatConnectSpring.chat.application.services;
 
 import com.example.chatConnectSpring.chat.application.commands.AddParticipantsCommand;
 import com.example.chatConnectSpring.chat.application.commands.CreateGroupChatCommand;
-import com.example.chatConnectSpring.chat.application.commands.CreatePrivateChatCommand;
 import com.example.chatConnectSpring.chat.application.commands.UpdateChatCommand;
 import com.example.chatConnectSpring.chat.application.exceptions.ChatAccessDeniedException;
 import com.example.chatConnectSpring.chat.application.exceptions.ChatNotFoundException;
@@ -11,12 +10,11 @@ import com.example.chatConnectSpring.chat.domain.model.chat.Chat;
 import com.example.chatConnectSpring.chat.domain.model.chat.ChatTypeEnum;
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipant;
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipantRole;
-import com.example.chatConnectSpring.chat.application.services.ChatService;
 import com.example.chatConnectSpring.chat.domain.ports.in.MessageUseCase;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatParticipantRepository;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatRepository;
+import com.example.chatConnectSpring.user.application.service.UserService;
 import com.example.chatConnectSpring.user.domain.model.User;
-import com.example.chatConnectSpring.user.domain.port.in.FindByIdUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -44,7 +42,7 @@ class ChatServiceTest {
     private MessageUseCase messageUseCase;
     
     @Mock
-    private FindByIdUseCase findByIdUseCase;
+    private UserService userService;
     
     @InjectMocks
     private ChatService chatService;
@@ -73,7 +71,7 @@ class ChatServiceTest {
         chat = new Chat();
         chat.setId(chatId);
         chat.setChatType(ChatTypeEnum.GROUP);
-        chat.setTitle("Grupo Devs");
+        chat.setName("Grupo Devs");
         chat.setDescription("Grupo de Testes");
         
         adminParticipant = new ChatParticipant();
@@ -111,13 +109,13 @@ class ChatServiceTest {
             
             assertNotNull(result);
             assertEquals(generatedChatId, result.getId());
-            assertEquals("Grupo de Estudos", result.getTitle());
+            assertEquals("Grupo de Estudos", result.getName());
             assertEquals("Chat para tirar dúvidas", result.getDescription());
             assertEquals(ChatTypeEnum.GROUP, result.getChatType());
             
             verify(chatRepository, times(1)).save(chatCaptor.capture());
             Chat savedChat = chatCaptor.getValue();
-            assertEquals("Grupo de Estudos", savedChat.getTitle());
+            assertEquals("Grupo de Estudos", savedChat.getName());
             
             verify(chatParticipantRepository, times(1)).saveAll(participantsSetCaptor.capture());
             Set<ChatParticipant> savedParticipants = participantsSetCaptor.getValue();
@@ -196,50 +194,38 @@ class ChatServiceTest {
         void shouldCreatePrivateChatSuccessfully() {
             UUID otherUserId = UUID.randomUUID();
             AddParticipantsCommand participants = new AddParticipantsCommand(List.of(otherUserId), chatId);
-            CreatePrivateChatCommand command = new CreatePrivateChatCommand(participants);
             
             User mockUser = new User();
             mockUser.setId(otherUserId);
             mockUser.setUsername("dev_usuario");
+            
+            User myUser = new User();
+            myUser.setId(userId);
+            myUser.setUsername("current_user");
             
             when(chatRepository.save(any(Chat.class))).thenAnswer(i -> {
                 Chat c = i.getArgument(0);
                 c.setId(chatId);
                 return c;
             });
-            when(findByIdUseCase.findById(otherUserId)).thenReturn(mockUser);
+            when(userService.findById(userId)).thenReturn(myUser);
+            when(userService.findById(otherUserId)).thenReturn(mockUser);
             
-            Chat result = chatService.createPrivateChat(userId, command);
+            Chat result = chatService.createPrivateChat(userId, otherUserId);
             
             assertNotNull(result);
-            assertEquals("dev_usuario", result.getTitle());
+            assertEquals("dev_usuario", result.getName());
             assertEquals(ChatTypeEnum.PRIVATE, result.getChatType());
             
             verify(chatParticipantRepository, times(2)).save(any(ChatParticipant.class));
         }
         
         @Test
-        @DisplayName("Deve lançar InvalidChatException se a lista de participantes for nula ou não tiver exatamente 1 usuário")
-        void shouldThrowInvalidChatExceptionWhenParticipantsInvalid() {
-            CreatePrivateChatCommand emptyCommand = new CreatePrivateChatCommand(new AddParticipantsCommand(List.of(), chatId));
-            
-            InvalidChatException exception = assertThrows(
-                    InvalidChatException.class,
-                    () -> chatService.createPrivateChat(userId, emptyCommand)
-            );
-            
-            assertEquals("A private chat must have exactly one other participant.", exception.getMessage());
-        }
-        
-        @Test
         @DisplayName("Deve lançar InvalidChatException se o usuário tentar criar chat privado consigo mesmo")
         void shouldThrowInvalidChatExceptionWhenCreatingChatWithSelf() {
-            AddParticipantsCommand participants = new AddParticipantsCommand(List.of(userId), chatId);
-            CreatePrivateChatCommand command = new CreatePrivateChatCommand(participants);
-            
             InvalidChatException exception = assertThrows(
                     InvalidChatException.class,
-                    () -> chatService.createPrivateChat(userId, command)
+                    () -> chatService.createPrivateChat(userId, userId)
             );
             
             assertEquals("A private chat cannot be created with yourself.", exception.getMessage());
@@ -249,19 +235,22 @@ class ChatServiceTest {
         @DisplayName("Deve lançar InvalidChatException se o outro usuário não existir no banco")
         void shouldThrowInvalidChatExceptionWhenUserDoesNotExist() {
             UUID otherUserId = UUID.randomUUID();
-            AddParticipantsCommand participants = new AddParticipantsCommand(List.of(otherUserId), chatId);
-            CreatePrivateChatCommand command = new CreatePrivateChatCommand(participants);
             
+            User myUser = new User();
+            myUser.setId(userId);
+            myUser.setUsername("current_user");
+
             when(chatRepository.save(any(Chat.class))).thenAnswer(i -> {
                 Chat c = i.getArgument(0);
                 c.setId(chatId);
                 return c;
             });
-            when(findByIdUseCase.findById(otherUserId)).thenReturn(null);
+            when(userService.findById(userId)).thenReturn(myUser);
+            when(userService.findById(otherUserId)).thenReturn(null);
             
             InvalidChatException exception = assertThrows(
                     InvalidChatException.class,
-                    () -> chatService.createPrivateChat(userId, command)
+                    () -> chatService.createPrivateChat(userId, otherUserId)
             );
             
             assertEquals("User does not exist.", exception.getMessage());
@@ -277,7 +266,7 @@ class ChatServiceTest {
         void shouldReturnGroupChatWithOriginalTitle() {
             Chat groupChat = new Chat();
             groupChat.setId(chatId);
-            groupChat.setTitle("Grupo de Futebol");
+            groupChat.setName("Grupo de Futebol");
             groupChat.setChatType(ChatTypeEnum.GROUP);
             
             Mockito.when(chatParticipantRepository.findByUserIdAndChatId(userId, chatId))
@@ -288,7 +277,7 @@ class ChatServiceTest {
             Chat result = chatService.findChatById(userId, chatId);
             
             assertNotNull(result);
-            assertEquals("Grupo de Futebol", result.getTitle());
+            assertEquals("Grupo de Futebol", result.getName());
             assertEquals(ChatTypeEnum.GROUP, result.getChatType());
             
             Mockito.verify(chatParticipantRepository, Mockito.never()).findByChatId(Mockito.any());
@@ -301,7 +290,7 @@ class ChatServiceTest {
             
             Chat privateChat = new Chat();
             privateChat.setId(chatId);
-            privateChat.setTitle("Título Antigo/Original");
+            privateChat.setName("Título Antigo/Original");
             privateChat.setChatType(ChatTypeEnum.PRIVATE);
             
             ChatParticipant otherParticipant = new ChatParticipant();
@@ -320,7 +309,7 @@ class ChatServiceTest {
             Chat result = chatService.findChatById(userId, chatId);
             
             assertNotNull(result);
-            assertEquals("marcos_dev", result.getTitle());
+            assertEquals("marcos_dev", result.getName());
             assertEquals(ChatTypeEnum.PRIVATE, result.getChatType());
         }
         
@@ -371,7 +360,7 @@ class ChatServiceTest {
             
             Chat updated = chatService.update(userId, command);
             
-            assertEquals("Título Atualizado", updated.getTitle());
+            assertEquals("Título Atualizado", updated.getName());
             assertEquals("Nova Descrição", updated.getDescription());
             verify(chatRepository, times(1)).update(chat);
         }
@@ -387,7 +376,7 @@ class ChatServiceTest {
             
             Chat result = chatService.update(userId, command);
             
-            assertEquals("Grupo Devs", result.getTitle());
+            assertEquals("Grupo Devs", result.getName());
             verify(chatRepository, never()).update(any());
         }
         

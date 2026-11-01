@@ -23,27 +23,43 @@ public class StompEventListener {
     public void handleSubscribeEvent(SessionSubscribeEvent event) {
         StompHeaderAccessor headers = StompHeaderAccessor.wrap(event.getMessage());
         String destination = headers.getDestination();
+        String subscriptionId = headers.getSubscriptionId();
         Principal user = headers.getUser();
         
         if (user != null && destination != null && destination.startsWith("/topic/chat.")) {
-            UUID chatId = UUID.fromString(destination.replace("/topic/chat.", ""));
-            UUID userId = UUID.fromString(user.getName());
+            if (headers.getSessionAttributes() != null) {
+                headers.getSessionAttributes().put("sub_" + subscriptionId, destination);
+            }
             
-            presenceUseCase.enterChat(userId, chatId);
+            try {
+                UUID chatId = UUID.fromString(destination.replace("/topic/chat.", "").split("/")[0]);
+                UUID userId = UUID.fromString(user.getName());
+                presenceUseCase.enterChat(userId, chatId);
+            } catch (Exception e) {
+            }
         }
     }
     
     @EventListener
     public void handleUnsubscribeEvent(SessionUnsubscribeEvent event) {
         StompHeaderAccessor headers = StompHeaderAccessor.wrap(event.getMessage());
-        String destination = headers.getDestination();
+        String subscriptionId = headers.getSubscriptionId();
         Principal user = headers.getUser();
         
+        String destination = null;
+        if (headers.getSessionAttributes() != null) {
+            destination = (String) headers.getSessionAttributes().get("sub_" + subscriptionId);
+        }
+        
         if (user != null && destination != null && destination.startsWith("/topic/chat.")) {
-            UUID chatId = UUID.fromString(destination.replace("/topic/chat.", ""));
-            UUID userId = UUID.fromString(user.getName());
-            
-            presenceUseCase.exitChat(chatId, userId);
+            try {
+                UUID chatId = UUID.fromString(destination.replace("/topic/chat.", "").split("/")[0]);
+                UUID userId = UUID.fromString(user.getName());
+                
+                presenceUseCase.exitChat(chatId, userId);
+                headers.getSessionAttributes().remove("sub_" + subscriptionId);
+            } catch (Exception e) {
+            }
         }
     }
 }

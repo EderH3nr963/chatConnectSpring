@@ -6,8 +6,8 @@ Este documento detalha os Requisitos Não Funcionais (RNF) da plataforma **ChatC
 
 ## 1. Tabela Resumida de Requisitos Não Funcionais
 
-| RNF | Categoria | Descrição |
-|---|---|---|
+| RNF         | Categoria | Descrição |
+|-------------|---|---|
 | **RNF0001** | Segurança & Autenticação | O sistema deve utilizar autenticação stateless via tokens JWT emitidos pelo provedor de identidade Clerk, validados via JWKS e interceptadores dedicados tanto para HTTP quanto para WebSocket (STOMP CONNECT). |
 | **RNF0002** | Confiabilidade & Transações | As operações de persistência e modificação de estado (chats, participantes, mensagens) devem ser executadas com garantia transacional (ACID) via `@Transactional` do Spring. |
 | **RNF0003** | Integridade Concorrente | O sistema deve assegurar a consistência dos dados de participantes, chats e contadores de mensagens mesmo sob operações concorrentes simultâneas. |

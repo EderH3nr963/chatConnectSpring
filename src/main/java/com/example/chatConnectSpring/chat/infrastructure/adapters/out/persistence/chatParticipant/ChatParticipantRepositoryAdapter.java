@@ -26,7 +26,7 @@ public class ChatParticipantRepositoryAdapter implements ChatParticipantReposito
             return null;
         }
         ChatParticipantEntity entity = ChatParticipantMapper.toEntity(participant);
-        return ChatParticipantMapper.toDomain(chatParticipantJpaRepository.save(entity));
+        return ChatParticipantMapper.toDomain(chatParticipantJpaRepository.saveAndFlush(entity));
     }
 
     @Override
@@ -78,5 +78,12 @@ public class ChatParticipantRepositoryAdapter implements ChatParticipantReposito
     @Override
     public void deleteByUserIdAndChatId(UUID userId, UUID chatId) {
         chatParticipantJpaRepository.deleteByUserIdAndChatId(userId, chatId);
+    }
+    
+    @Override
+    public ChatParticipant findOtherParticipantInPrivateChat(UUID chatId, UUID userId) {
+        ChatParticipantEntity entity = chatParticipantJpaRepository.findOtherParticipantInPrivateChat(chatId, userId);
+        
+        return ChatParticipantMapper.toDomain(entity);
     }
 }

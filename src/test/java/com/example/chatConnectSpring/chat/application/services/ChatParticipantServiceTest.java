@@ -156,7 +156,7 @@ class ChatParticipantServiceTest {
                     () -> chatParticipantService.add(adminUserId, command)
             );
             
-            assertEquals("You are not allowed to add participants to this chat", exception.getMessage());
+            assertEquals("You are not allowed to add memberIds to this chat", exception.getMessage());
             Mockito.verify(chatParticipantRepository, Mockito.never()).saveAll(Mockito.any());
             Mockito.verify(chatNotificationPort, Mockito.never()).notifyJoinedChat(Mockito.any(), Mockito.any());
         }
@@ -174,7 +174,7 @@ class ChatParticipantServiceTest {
                     () -> chatParticipantService.add(adminUserId, command)
             );
             
-            assertEquals("Cannot add participants to a private chat", exception.getMessage());
+            assertEquals("Cannot add memberIds to a private chat", exception.getMessage());
             Mockito.verify(chatParticipantRepository, Mockito.never()).saveAll(Mockito.any());
             Mockito.verify(chatNotificationPort, Mockito.never()).notifyJoinedChat(Mockito.any(), Mockito.any());
         }
@@ -252,7 +252,7 @@ class ChatParticipantServiceTest {
                     () -> chatParticipantService.remove(myParticipantId, participantToBeRemovedId, chatId)
             );
             
-            assertEquals("Only ADMIN can remove participants", exception.getMessage());
+            assertEquals("Only ADMIN can remove memberIds", exception.getMessage());
             Mockito.verify(chatParticipantRepository, Mockito.never()).deleteById(Mockito.any());
             Mockito.verify(chatNotificationPort, Mockito.never()).notifyLeftChat(Mockito.any(), Mockito.any());
         }

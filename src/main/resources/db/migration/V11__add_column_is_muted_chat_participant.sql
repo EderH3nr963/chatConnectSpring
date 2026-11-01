@@ -1,0 +1,1 @@
+ALTER TABLE chat_participant ADD COLUMN is_muted BOOLEAN DEFAULT FALSE NOT NULL;

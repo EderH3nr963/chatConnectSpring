@@ -1,11 +1,12 @@
 package com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.message;
 
-import com.example.chatConnectSpring.chat.domain.model.Message;
+import com.example.chatConnectSpring.chat.domain.model.message.Message;
 import com.example.chatConnectSpring.chat.domain.ports.out.MessageRepository;
 import com.example.chatConnectSpring.chat.infrastructure.mapper.MessageMapper;
 import org.springframework.stereotype.Component;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 
-import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -40,11 +41,15 @@ public class MessageRepositoryAdapter implements MessageRepository {
     }
 
     @Override
-    public List<Message> findByChatId(UUID chatId) {
-        return messageJpaRepository.findByChatIdOrderByCreatedAtAsc(chatId)
-                .stream()
-                .map(MessageMapper::toDomain)
-                .toList();
+    public Slice<Message> findByChatId(UUID chatId, Pageable pageable) {
+        return messageJpaRepository.findByChatId(chatId, pageable)
+                .map(MessageMapper::toDomain);
+    }
+
+    @Override
+    public java.util.Optional<Message> findLastMessageByChatId(UUID chatId) {
+        return messageJpaRepository.findFirstByChatIdOrderByCreatedAtDesc(chatId)
+                .map(MessageMapper::toDomain);
     }
 
     @Override
@@ -53,7 +58,17 @@ public class MessageRepositoryAdapter implements MessageRepository {
     }
 
     @Override
+    public java.util.List<Message> findWithAttachmentByChatId(UUID chatId) {
+        return messageJpaRepository.findWithAttachmentByChatId(chatId).stream().map(MessageMapper::toDomain).toList();
+    }
+
+    @Override
     public void deleteByChatId(UUID chatId) {
         messageJpaRepository.deleteByChatId(chatId);
+    }
+    
+    @Override
+    public void deleteOldPendingMessages() {
+        messageJpaRepository.deleteOldPendingMessages();
     }
 }

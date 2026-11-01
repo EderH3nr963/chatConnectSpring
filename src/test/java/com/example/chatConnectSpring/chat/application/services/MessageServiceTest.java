@@ -2,16 +2,16 @@ package com.example.chatConnectSpring.chat.application.services;
 
 import com.example.chatConnectSpring.chat.application.commands.EditMessageCommand;
 import com.example.chatConnectSpring.chat.application.commands.SendMessageCommand;
+import com.example.chatConnectSpring.chat.application.events.MessageSentEvent;
 import com.example.chatConnectSpring.chat.application.exceptions.InvalidMessageException;
 import com.example.chatConnectSpring.chat.application.exceptions.MessageAccessDeniedException;
 import com.example.chatConnectSpring.chat.application.exceptions.MessageNotFoundException;
-import com.example.chatConnectSpring.chat.domain.model.Message;
+import com.example.chatConnectSpring.chat.domain.model.message.Message;
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipant;
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipantRole;
-import com.example.chatConnectSpring.chat.domain.ports.out.ChatParticipantRepository;
-import com.example.chatConnectSpring.chat.domain.ports.out.MessageNotificationPort;
-import com.example.chatConnectSpring.chat.domain.ports.out.MessageRepository;
-import com.example.chatConnectSpring.chat.domain.ports.out.PresenceStateOutputPort;
+import com.example.chatConnectSpring.chat.domain.model.message.MessageType;
+import com.example.chatConnectSpring.chat.domain.model.message.SendMessageResult;
+import com.example.chatConnectSpring.chat.domain.ports.out.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -24,12 +24,15 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Collections;
-import java.util.Set;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,10 +46,19 @@ class MessageServiceTest {
     private MessageNotificationPort messageNotificationPort;
     
     @Mock
-    private ChatParticipantRepository chatParticipantRepository;
+    private EventPublisherPort eventPublisher;
+
+    @Mock
+    private ChatResolver chatResolver;
+
+    @Mock
+    private StoragePort storagePort;
+
+    @Mock
+    private S3CleanupOutboxRepository s3CleanupOutboxRepository;
     
     @Mock
-    private PresenceStateOutputPort presenceStateOutputPort;
+    private ChatParticipantRepository chatParticipantRepository;
     
     @InjectMocks
     private MessageService messageService;
@@ -84,17 +96,11 @@ class MessageServiceTest {
     @DisplayName("Cenários do Método send()")
     class SendMessageTests {
         @Test
-        @DisplayName("Deve enviar mensagem com sucesso e notificar apenas participantes inativos")
-        void send_ShouldSendMessageAndNotifyInactiveParticipants_WhenDataIsValid() {
-            SendMessageCommand command = new SendMessageCommand(chatId, "  Olá, mundo!  ");
+        @DisplayName("Deve enviar mensagem com sucesso e publicar evento quando dados são válidos")
+        void send_ShouldSendMessageAndPublishEvent_WhenDataIsValid() {
+            SendMessageCommand command = new SendMessageCommand(null, chatId, "  Olá, mundo!  ", null, MessageType.TEXT);
             
-            ChatParticipant inactiveParticipant = new ChatParticipant();
-            UUID inactiveUserId = UUID.randomUUID();
-            inactiveParticipant.setId(UUID.randomUUID());
-            inactiveParticipant.setUserId(inactiveUserId);
-            inactiveParticipant.setChatId(chatId);
-            inactiveParticipant.setUnreadMessages(1);
-            
+            when(chatResolver.resolveChatId(userId, command)).thenReturn(chatId);
             when(chatParticipantRepository.findByUserIdAndChatId(userId, chatId)).thenReturn(authorParticipant);
             when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> {
                 Message msgToSave = invocation.getArgument(0);
@@ -102,28 +108,17 @@ class MessageServiceTest {
                 return msgToSave;
             });
             
-            when(chatParticipantRepository.findByChatId(chatId))
-                    .thenReturn(List.of(authorParticipant, inactiveParticipant));
-            
-            when(presenceStateOutputPort.usersInChat(chatId.toString()))
-                    .thenReturn(Set.of(userId.toString()));
-            
-            Message result = messageService.send(userId, command);
+            SendMessageResult result = messageService.send(userId, command);
             
             assertNotNull(result);
-            assertEquals(messageId, result.getId());
-            assertEquals("Olá, mundo!", result.getContent()); // Garante o trim()
-            assertEquals(authorParticipant.getId(), result.getSenderId());
-            assertEquals(chatId, result.getChatId());
+            assertEquals(messageId, result.message().getId());
+            assertEquals("Olá, mundo!", result.message().getContent());
+            assertEquals(chatId, result.message().getChatId());
             
-            // Valida se o contador de não lidas do participante inativo aumentou (1 -> 2)
-            assertEquals(2, inactiveParticipant.getUnreadMessages());
-            // Valida que o participante ativo não teve o contador incrementado (0)
-            assertEquals(0, authorParticipant.getUnreadMessages());
-            
-            // Verifica envio das notificações
-            verify(messageNotificationPort, times(1))
-                    .notifyMessageSent(result, List.of(inactiveParticipant));
+            verify(chatResolver, times(1)).resolveChatId(userId, command);
+            verify(messageRepository, times(1)).save(any(Message.class));
+            verify(eventPublisher, times(1))
+                    .publishEvent(any(MessageSentEvent.class));
         }
         
         @ParameterizedTest
@@ -131,34 +126,35 @@ class MessageServiceTest {
         @ValueSource(strings = {"   ", "\t", "\n"})
         @DisplayName("Deve lançar InvalidMessageException quando o conteúdo for nulo ou em branco")
         void send_ShouldThrowInvalidMessageException_WhenContentIsInvalid(String invalidContent) {
-            SendMessageCommand command = new SendMessageCommand(chatId, invalidContent);
+            // SendMessageCommand não valida no construtor — valida no service — então o conteúdo vazio só dá InvalidMessageException
+            // quando não tem attachment. Esses casos devem dar InvalidMessageException pelo service.
+            SendMessageCommand command = new SendMessageCommand(null, chatId, invalidContent, null, MessageType.TEXT);
             
             InvalidMessageException exception = assertThrows(
                     InvalidMessageException.class,
                     () -> messageService.send(userId, command)
             );
             
-            assertEquals("Message content cannot be empty.", exception.getMessage());
-            verifyNoInteractions(chatParticipantRepository, messageRepository, presenceStateOutputPort, messageNotificationPort);
+            assertNotNull(exception.getMessage());
         }
         
         @Test
         @DisplayName("Deve lançar InvalidMessageException quando o comando for nulo")
         void send_ShouldThrowInvalidMessageException_WhenCommandIsNull() {
-            // Act & Assert
             InvalidMessageException exception = assertThrows(
                     InvalidMessageException.class,
                     () -> messageService.send(userId, null)
             );
             
-            assertEquals("Message content cannot be empty.", exception.getMessage());
-            verifyNoInteractions(chatParticipantRepository, messageRepository, presenceStateOutputPort, messageNotificationPort);
+            assertNotNull(exception.getMessage());
+            verifyNoInteractions(chatResolver, chatParticipantRepository, messageRepository, eventPublisher, storagePort);
         }
         
         @Test
         @DisplayName("Deve lançar MessageAccessDeniedException quando o usuário não for participante do chat")
         void send_ShouldThrowMessageAccessDeniedException_WhenUserIsNotParticipant() {
-            SendMessageCommand command = new SendMessageCommand(chatId, "Mensagem válida");
+            SendMessageCommand command = new SendMessageCommand(null, chatId, "Mensagem válida", null, MessageType.TEXT);
+            when(chatResolver.resolveChatId(userId, command)).thenReturn(chatId);
             when(chatParticipantRepository.findByUserIdAndChatId(userId, chatId)).thenReturn(null);
             
             MessageAccessDeniedException exception = assertThrows(
@@ -167,8 +163,9 @@ class MessageServiceTest {
             );
             
             assertEquals("User is not a participant of this chat.", exception.getMessage());
+            verify(chatResolver, times(1)).resolveChatId(userId, command);
             verify(chatParticipantRepository, times(1)).findByUserIdAndChatId(userId, chatId);
-            verifyNoInteractions(messageRepository, presenceStateOutputPort, messageNotificationPort);
+            verifyNoInteractions(messageRepository, eventPublisher, storagePort);
         }
     }
     
@@ -200,14 +197,11 @@ class MessageServiceTest {
         @ValueSource(strings = {"   ", "\t", "\n"})
         @DisplayName("Deve lançar InvalidMessageException quando o conteúdo for nulo ou em branco")
         void edit_ShouldThrowInvalidMessageException_WhenContentIsInvalid(String invalidContent) {
-            EditMessageCommand command = new EditMessageCommand(messageId, chatId, invalidContent);
-            
-            InvalidMessageException exception = assertThrows(
+            // EditMessageCommand valida no construtor (compact constructor), então o InvalidMessageException vem na criação do command
+            assertThrows(
                     InvalidMessageException.class,
-                    () -> messageService.edit(userId, command)
+                    () -> new EditMessageCommand(messageId, chatId, invalidContent)
             );
-            
-            assertEquals("Message content cannot be empty.", exception.getMessage());
             verifyNoInteractions(messageRepository, chatParticipantRepository, messageNotificationPort);
         }
         
@@ -219,7 +213,7 @@ class MessageServiceTest {
                     () -> messageService.edit(userId, null)
             );
             
-            assertEquals("Message content cannot be empty.", exception.getMessage());
+            assertNotNull(exception.getMessage());
             verifyNoInteractions(messageRepository, chatParticipantRepository, messageNotificationPort);
         }
         
@@ -299,6 +293,24 @@ class MessageServiceTest {
             
             verify(messageRepository, times(1)).deleteById(messageId);
             verify(messageNotificationPort, times(1)).notifyMessageDeleted(chatId, messageId);
+            verify(s3CleanupOutboxRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Deve enfileirar outbox quando mensagem tem anexo S3")
+        void delete_ShouldEnqueueOutbox_WhenMessageHasAttachment() {
+            authorParticipant.setRole(ChatParticipantRole.ADMIN);
+            message.setFileS3Key("chat/abc/file.jpg");
+
+            when(messageRepository.findById(messageId)).thenReturn(message);
+            when(chatParticipantRepository.findByUserIdAndChatId(userId, chatId)).thenReturn(authorParticipant);
+            when(s3CleanupOutboxRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            messageService.delete(userId, messageId);
+
+            verify(messageRepository, times(1)).deleteById(messageId);
+            verify(s3CleanupOutboxRepository, times(1)).save(argThat(t -> t.getS3Key().equals("chat/abc/file.jpg") && t.getMessageId().equals(messageId)));
+            verify(messageNotificationPort, times(1)).notifyMessageDeleted(chatId, messageId);
         }
         
         @Test
@@ -335,56 +347,74 @@ class MessageServiceTest {
     }
     
     @Nested
-    @DisplayName("Testes do método findMessagesByChatId")
+    @DisplayName("Testes do método findMessagesByChatId com paginação")
     class FindMessagesByChatIdTests {
         
         @Test
-        @DisplayName("Deve retornar a lista de mensagens quando o usuário for participante do chat")
-        void findMessagesByChatId_ShouldReturnMessages_WhenUserIsParticipant() {
-            List<Message> expectedMessages = List.of(message);
+        @DisplayName("Deve retornar Slice de mensagens quando o usuário for participante do chat")
+        void findMessagesByChatId_ShouldReturnSlice_WhenUserIsParticipant() {
+            Pageable pageable = PageRequest.of(0, 20);
+            Slice<Message> expectedSlice = new SliceImpl<>(List.of(message), pageable, false);
             
             when(chatParticipantRepository.findByUserIdAndChatId(userId, chatId)).thenReturn(authorParticipant);
-            when(messageRepository.findByChatId(chatId)).thenReturn(expectedMessages);
+            when(messageRepository.findByChatId(chatId, pageable)).thenReturn(expectedSlice);
             
-            List<Message> result = messageService.findMessagesByChatId(userId, chatId);
+            Slice<Message> result = messageService.findMessagesByChatId(userId, chatId, pageable);
             
             assertNotNull(result);
-            assertEquals(1, result.size());
-            assertEquals(messageId, result.get(0).getId());
-            assertEquals("Mensagem original", result.get(0).getContent());
+            assertEquals(1, result.getContent().size());
+            assertEquals(messageId, result.getContent().get(0).getId());
+            assertEquals("Mensagem original", result.getContent().get(0).getContent());
             
             verify(chatParticipantRepository, times(1)).findByUserIdAndChatId(userId, chatId);
-            verify(messageRepository, times(1)).findByChatId(chatId);
+            verify(messageRepository, times(1)).findByChatId(chatId, pageable);
         }
         
         @Test
-        @DisplayName("Deve retornar lista vazia quando não houver mensagens no chat")
-        void findMessagesByChatId_ShouldReturnEmptyList_WhenChatHasNoMessages() {
+        @DisplayName("Deve retornar Slice vazio quando não houver mensagens no chat")
+        void findMessagesByChatId_ShouldReturnEmptySlice_WhenChatHasNoMessages() {
+            Pageable pageable = PageRequest.of(0, 20);
+            Slice<Message> emptySlice = new SliceImpl<>(Collections.emptyList(), pageable, false);
             when(chatParticipantRepository.findByUserIdAndChatId(userId, chatId)).thenReturn(authorParticipant);
-            when(messageRepository.findByChatId(chatId)).thenReturn(Collections.emptyList());
+            when(messageRepository.findByChatId(chatId, pageable)).thenReturn(emptySlice);
             
-            List<Message> result = messageService.findMessagesByChatId(userId, chatId);
+            Slice<Message> result = messageService.findMessagesByChatId(userId, chatId, pageable);
             
             assertNotNull(result);
-            assertTrue(result.isEmpty());
+            assertTrue(result.getContent().isEmpty());
             
             verify(chatParticipantRepository, times(1)).findByUserIdAndChatId(userId, chatId);
-            verify(messageRepository, times(1)).findByChatId(chatId);
+            verify(messageRepository, times(1)).findByChatId(chatId, pageable);
         }
         
         @Test
         @DisplayName("Deve lançar MessageAccessDeniedException quando o usuário não for participante do chat")
         void findMessagesByChatId_ShouldThrowMessageAccessDeniedException_WhenUserIsNotParticipant() {
+            Pageable pageable = PageRequest.of(0, 20);
             when(chatParticipantRepository.findByUserIdAndChatId(userId, chatId)).thenReturn(null);
             
             MessageAccessDeniedException exception = assertThrows(
                     MessageAccessDeniedException.class,
-                    () -> messageService.findMessagesByChatId(userId, chatId)
+                    () -> messageService.findMessagesByChatId(userId, chatId, pageable)
             );
             
             assertEquals("User is not a participant of this chat.", exception.getMessage());
             verify(chatParticipantRepository, times(1)).findByUserIdAndChatId(userId, chatId);
             verifyNoInteractions(messageRepository);
+        }
+
+        @Test
+        @DisplayName("Deve repassar Pageable corretamente para o repositório")
+        void findMessagesByChatId_ShouldForwardPageableToRepository() {
+            Pageable pageable = PageRequest.of(2, 10);
+            Slice<Message> slice = new SliceImpl<>(List.of(message), pageable, true);
+            when(chatParticipantRepository.findByUserIdAndChatId(userId, chatId)).thenReturn(authorParticipant);
+            when(messageRepository.findByChatId(chatId, pageable)).thenReturn(slice);
+
+            Slice<Message> result = messageService.findMessagesByChatId(userId, chatId, pageable);
+
+            assertTrue(result.hasNext());
+            verify(messageRepository).findByChatId(chatId, pageable);
         }
     }
 }

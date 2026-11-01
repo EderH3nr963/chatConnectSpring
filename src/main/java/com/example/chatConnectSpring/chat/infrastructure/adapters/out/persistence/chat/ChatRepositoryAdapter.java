@@ -1,12 +1,12 @@
 package com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.chat;
 
+import com.example.chatConnectSpring.chat.domain.ports.out.StoragePort;
+import com.example.chatConnectSpring.chat.domain.ports.out.projections.ChatSummaryDto;
 import com.example.chatConnectSpring.chat.infrastructure.mapper.ChatMapper;
 import com.example.chatConnectSpring.chat.domain.model.chat.Chat;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,9 +14,11 @@ import java.util.UUID;
 public class ChatRepositoryAdapter implements ChatRepository {
 
     private final ChatJpaRepository chatJpaRepository;
+    private final StoragePort storagePort;
 
-    public ChatRepositoryAdapter(ChatJpaRepository chatJpaRepository) {
+    public ChatRepositoryAdapter(ChatJpaRepository chatJpaRepository, StoragePort storagePort) {
         this.chatJpaRepository = chatJpaRepository;
+        this.storagePort = storagePort;
     }
 
     @Override
@@ -27,7 +29,16 @@ public class ChatRepositoryAdapter implements ChatRepository {
         ChatEntity entity = ChatMapper.toEntity(chat);
         return ChatMapper.toDomain(chatJpaRepository.save(entity));
     }
-
+    
+    @Override
+    public List<ChatSummaryDto> findChatSummaries(UUID userId) {
+        return chatJpaRepository
+                .findChatSummariesByUserId(userId)
+                .stream()
+                .map(p -> p.toDto(storagePort))
+                .toList();
+    }
+    
     @Override
     public Chat update(Chat chat) {
         return save(chat);
@@ -41,15 +52,29 @@ public class ChatRepositoryAdapter implements ChatRepository {
     }
 
     @Override
-    public List<Chat> findChatByUserId(UUID userId) {
-        return chatJpaRepository.findChatsByUserId(userId)
-                .stream()
-                .map(ChatMapper::toDomain)
-                .toList();
+    public void blockPrivateChat(UUID chatId) {
+        chatJpaRepository.markBlocked(chatId);
+    }
+
+    @Override
+    public void unblockPrivateChat(UUID chatId) {
+        chatJpaRepository.clearBlocked(chatId);
     }
 
     @Override
     public void delete(UUID chatId) {
         chatJpaRepository.deleteById(chatId);
+    }
+    
+    @Override
+    public boolean canSendMessageInPrivateChat(UUID senderId, UUID targetId) {
+        return chatJpaRepository.canSendMessageInPrivateChat(senderId, targetId);
+    }
+    
+    @Override
+    public Chat findPrivateChat(UUID senderId, UUID targetId) {
+        ChatEntity entity = chatJpaRepository.findPrivateChat(senderId, targetId).orElse(null);
+        
+        return ChatMapper.toDomain(entity);
     }
 }

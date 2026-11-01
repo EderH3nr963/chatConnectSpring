@@ -1,7 +1,6 @@
 package com.example.chatConnectSpring.chat.infrastructure.adapters.out.websocket.dto;
 
 import com.example.chatConnectSpring.chat.infrastructure.adapters.in.http.dto.response.MessageResponseDTO;
-
 import java.util.UUID;
 
 public record MessageWebSocketEventDTO(
@@ -15,7 +14,7 @@ public record MessageWebSocketEventDTO(
     }
 
     public static MessageWebSocketEventDTO updated(MessageResponseDTO message) {
-        return new MessageWebSocketEventDTO("MESSAGE_EDITED", message.chatId(), message.id(), message);
+        return new MessageWebSocketEventDTO("MESSAGE_EDITED", message.chat().id(), message.id(), message);
     }
 
     public static MessageWebSocketEventDTO deleted(UUID chatId, UUID messageId) {

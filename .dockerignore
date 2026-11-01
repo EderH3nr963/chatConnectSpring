@@ -1,0 +1,16 @@
+.git
+.gitignore
+target/
+.mvn/wrapper/maven-wrapper.jar
+.idea/
+*.iml
+*.iws
+.vscode/
+localstack_data/
+postgres_data/
+README.md
+HELP.md
+docs/
+test_websocket/
+.env
+!.env.example

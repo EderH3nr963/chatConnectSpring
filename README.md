@@ -303,6 +303,9 @@ A API possui documentação OpenAPI 3.0 interativa disponível enquanto a aplica
 
 | Método | Endpoint | Descrição | Autenticação |
 |---|---|---|---|
+| `POST` | `/api/auth/login` | Autenticar por e-mail/senha e emitir access/refresh tokens | Pública |
+| `POST` | `/api/auth/refresh` | Rotacionar refresh token e emitir novo par de tokens | Pública |
+| `POST` | `/api/auth/logout` | Revogar refresh token | Pública |
 | `POST` | `/api/chat/group` | Criar chat em grupo | Requer Bearer Token |
 | `POST` | `/api/chat/private` | Criar chat privado entre 2 usuários | Requer Bearer Token |
 | `GET` | `/api/chat` | Listar chats do usuário autenticado | Requer Bearer Token |
@@ -318,6 +321,8 @@ A API possui documentação OpenAPI 3.0 interativa disponível enquanto a aplica
 | `POST` | `/api/webhooks/clerk/user-created` | Webhook de criação de usuário do Clerk | Pública |
 | `POST` | `/api/webhooks/clerk/user-updated` | Webhook de atualização de usuário | Pública |
 | `POST` | `/api/webhooks/clerk/user-deleted` | Webhook de exclusão de usuário | Pública |
+
+O login local recebe `{ "email": "...", "password": "..." }`. Refresh e logout recebem `{ "refreshToken": "..." }`. O login pressupõe que o usuário e suas credenciais já existam na base; o cadastro local de usuários/senhas ainda não faz parte dos endpoints expostos. Credenciais inválidas retornam `401` sem distinguir e-mail de senha. Refresh tokens são armazenados como SHA-256, rotacionados a cada uso e revogados no logout. Access tokens duram 15 minutos e refresh tokens 30 dias por padrão; configure `JWT_SECRET`, `JWT_ACCESS_EXPIRATION` e `JWT_REFRESH_EXPIRATION` no ambiente. O segredo padrão serve apenas para desenvolvimento local.
 
 ---
 

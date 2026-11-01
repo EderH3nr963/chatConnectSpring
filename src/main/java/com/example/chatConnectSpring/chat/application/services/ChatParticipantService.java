@@ -13,6 +13,8 @@ import com.example.chatConnectSpring.chat.domain.ports.in.ChatParticipantUseCase
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatNotificationPort;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatParticipantRepository;
 import com.example.chatConnectSpring.chat.domain.ports.out.ChatRepository;
+import com.example.chatConnectSpring.user.domain.model.User;
+import com.example.chatConnectSpring.user.application.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +26,13 @@ public class ChatParticipantService implements ChatParticipantUseCase {
     private final ChatParticipantRepository  chatParticipantRepository;
     private final ChatNotificationPort chatNotificationPort;
     private final ChatRepository chatRepository;
+    private final UserService userService;
     
-    public ChatParticipantService(ChatParticipantRepository  chatParticipantRepository, ChatNotificationPort chatNotificationPort, ChatRepository chatRepository) {
+    public ChatParticipantService(ChatParticipantRepository  chatParticipantRepository, ChatNotificationPort chatNotificationPort, ChatRepository chatRepository, UserService userService) {
         this.chatParticipantRepository = chatParticipantRepository;
         this.chatNotificationPort = chatNotificationPort;
         this.chatRepository = chatRepository;
+        this.userService = userService;
     }
     
     @Override
@@ -39,29 +43,42 @@ public class ChatParticipantService implements ChatParticipantUseCase {
             throw new ChatNotFoundException("Chat not found");
         
         if (chat.getChatType() != ChatTypeEnum.GROUP)
-            throw new InvalidChatTypeOperationException("Cannot add participants to a private chat");
-        
+            throw new InvalidChatTypeOperationException("Cannot add memberIds to a private chat");
         
         ChatParticipant myParticipant = chatParticipantRepository.findByUserIdAndChatId(userId, command.chatId());
         if (myParticipant == null)
             throw new ParticipantNotFoundException("Participant not found");
         
         if (myParticipant.getRole() != ChatParticipantRole.ADMIN)
-            throw new ParticipantAccessDeniedException("You are not allowed to add participants to this chat");
-        
+            throw new ParticipantAccessDeniedException("You are not allowed to add memberIds to this chat");
+
+        List<User> existingUsers = userService.findUsersByUsersId(command.users());
+        java.util.Set<UUID> existingUserIds = existingUsers.stream().map(User::getId).collect(java.util.stream.Collectors.toSet());
+        if (!existingUserIds.containsAll(command.users()))
+            throw new ParticipantNotFoundException("One or more memberIds do not exist.");
         
         List<ChatParticipant> participants = command.users().stream().map(addUserId -> {
             ChatParticipant participant = new ChatParticipant();
             participant.setUserId(addUserId);
             participant.setChatId(command.chatId());
-            
             participant.setRole(ChatParticipantRole.DEFAULT);
+            
             return participant;
         }).toList();
         
         chatParticipantRepository.saveAll(participants);
         
         command.users().forEach(participantUserId -> chatNotificationPort.notifyJoinedChat(participantUserId, chat));
+    }
+    
+    @Override
+    public List<ChatParticipant> getParticipants(UUID userId, UUID chatId) {
+        ChatParticipant myParticipant = chatParticipantRepository.findByUserIdAndChatId(userId, chatId);
+        if (myParticipant == null) {
+            throw new ParticipantNotFoundException("Participant not found");
+        }
+        
+        return chatParticipantRepository.findByChatId(chatId);
     }
     
     @Override
@@ -76,7 +93,7 @@ public class ChatParticipantService implements ChatParticipantUseCase {
             throw new ParticipantAccessDeniedException("You don't can remove your self");
         
         if (myParticipant.getRole().equals(ChatParticipantRole.DEFAULT))
-            throw new ParticipantAccessDeniedException("Only ADMIN can remove participants");
+            throw new ParticipantAccessDeniedException("Only ADMIN can remove memberIds");
         
         ChatParticipant participant = chatParticipantRepository.findById(participantId);
         if (participant == null || !participant.getChatId().equals(chatId))
@@ -88,5 +105,17 @@ public class ChatParticipantService implements ChatParticipantUseCase {
         chatParticipantRepository.deleteById(participantId);
         
         chatNotificationPort.notifyLeftChat(userId, chatId);
+    }
+
+    @Override
+    @Transactional
+    public void toggleMute(UUID userId, UUID chatId) {
+        ChatParticipant participant = chatParticipantRepository.findByUserIdAndChatId(userId, chatId);
+        if (participant == null) {
+            throw new ParticipantNotFoundException("Participant not found");
+        }
+        
+        participant.setMuted(!participant.isMuted());
+        chatParticipantRepository.save(participant);
     }
 }

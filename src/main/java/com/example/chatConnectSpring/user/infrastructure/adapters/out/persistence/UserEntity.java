@@ -13,7 +13,6 @@ import java.util.UUID;
 @Table(
         name = "\"user\"",
         indexes = {
-                @Index(name = "idx_user_clerk_user_id", columnList = "clerk_user_id", unique = true),
                 @Index(name = "idx_user_email", columnList = "email", unique = true)
         }
 )
@@ -24,7 +23,6 @@ import java.util.UUID;
 public class UserEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "email", nullable = false, unique = true)
@@ -33,9 +31,12 @@ public class UserEntity {
     @Column(name = "username", nullable = true)
     private String username;
 
-    @Column(name = "clerk_user_id", nullable = false, unique = true)
-    private String clerkUserId;
-
+    @Column(name = "avatar_key", nullable = true, unique = true)
+    private String avatarKey;
+    
+    @Column(name = "is_active_2fa", nullable = false)
+    private boolean active2fa = false;
+    
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 

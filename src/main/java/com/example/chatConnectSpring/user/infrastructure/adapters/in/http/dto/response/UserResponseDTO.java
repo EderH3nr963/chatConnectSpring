@@ -5,9 +5,14 @@ import java.util.UUID;
 
 public record UserResponseDTO(
         UUID id,
-        String clerkUserId,
         String email,
         String username,
+        String avatarKey,
+        boolean active2fa,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
-) {}
+) {
+    public UserResponseDTO(UUID id, String email, String username, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this(id, email, username, null, false, createdAt, updatedAt);
+    }
+}

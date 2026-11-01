@@ -15,6 +15,8 @@ public interface ChatParticipantRepository {
 
     List<ChatParticipant> findByChatId(UUID chatId);
     
+    ChatParticipant findOtherParticipantInPrivateChat(UUID chatId, UUID userId);
+    
     ChatParticipant findById(UUID participantId);
 
     void deleteById(UUID participantId);

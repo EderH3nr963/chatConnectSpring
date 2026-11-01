@@ -7,14 +7,15 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface ChatParticipantJpaRepository extends JpaRepository<ChatParticipantEntity, UUID> {
-    java.util.Optional<ChatParticipantEntity> findByUserIdAndChatId(UUID userId, UUID chatId);
+    Optional<ChatParticipantEntity> findByUserIdAndChatId(UUID userId, UUID chatId);
 
     List<ChatParticipantEntity> findByChatId(UUID chatId);
-
+    
     @Modifying
     void deleteByUserIdAndChatId(UUID userId, UUID chatId);
     
@@ -24,4 +25,11 @@ public interface ChatParticipantJpaRepository extends JpaRepository<ChatParticip
         WHERE c.chatId = :chatId
     """)
     void deleteAllByChatId(@Param("chatId") UUID chatId);
+    
+    @Query("""
+    SELECT c FROM ChatParticipantEntity c
+        WHERE c.chatId = :chatId
+            AND c.userId <> :userId
+    """)
+    ChatParticipantEntity findOtherParticipantInPrivateChat(@Param("chatId") UUID chatId,@Param("userId") UUID userId);
 }

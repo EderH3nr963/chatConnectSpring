@@ -1,6 +1,7 @@
 package com.example.chatConnectSpring.chat.infrastructure.adapters.out.persistence.chatParticipant;
 
 import com.example.chatConnectSpring.chat.domain.model.chatParticipant.ChatParticipantRole;
+import com.example.chatConnectSpring.user.infrastructure.adapters.out.persistence.UserEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -33,16 +34,32 @@ public class ChatParticipantEntity {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
     
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    private UserEntity user;
+    
+    @Column(name = "username")
+    private String username;
+    
     @Column(name = "chat_id", nullable = false)
     private UUID chatId;
     
     @Column(name = "unread_messages")
     private int unreadMessages = 0;
     
+    @Column(name = "is_muted")
+    private boolean isMuted = false;
+    
+    @Column(name = "last_read_message")
+    private OffsetDateTime lastReadMessage = null;
+    
     private OffsetDateTime joinedAt;
     
     @Enumerated(EnumType.STRING)
     private ChatParticipantRole role;
+    
+    @Column(name = "fixed_chat")
+    private boolean fixedChat = false;
     
     @PrePersist
     public void prePersist() {

@@ -9,11 +9,10 @@ public interface UsuarioRepository {
     User create(User user);
     User save(User user);
     User findById(UUID id);
-    User findByClerkUserId(String clerkUserId);
+    List<User> findByIds(List<UUID> ids);
     User findByEmail(String email);
     List<User> findAll();
     void delete(UUID id);
-    void deleteByClerkUserId(String clerkUserId);
     boolean existsById(UUID id);
-    boolean existsByClerkUserId(String clerkUserId);
+    List<User> searchByUsernameOrEmail(String q, UUID excludeId, int limit);
 }

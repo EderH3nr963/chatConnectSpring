@@ -1,18 +1,11 @@
 const ws = new WebSocket("ws://localhost:8080/ws");
 
-const subscribeFrame =
-  "SUBSCRIBE\n" +
-  "id:sub-0\n" +
-  "destination:/topic/chat.6d7d55f7-07a1-4867-b9ca-ac1972e70bd7\n" +
-  "\n" +
-  "\0";
-
 const sendMessage =
   "SEND\n" +
-  "destination:/app/chat.editMessage\n" +
+  "destination:/app/chat.sendMessage\n" +
   "content-type:application/json\n" +
   "\n" +
-  "{\"messageId\":\"a166ffbe-5178-42da-a28c-743b614eb077\",\"content\":\"Ola mundo!!\"}" +
+  "{\"chatId\": null, \"targetId\": \"d0d1eb9d-8375-4c62-80c3-0ada96eb73d9\", \"attachmentInfo\": null, \"messageType\": \"TEXT\", \"content\":\"Ola mundo!!\"}" +
   "\0";
 
 ws.onopen = () => {
@@ -22,7 +15,7 @@ ws.onopen = () => {
     "CONNECT\n" +
     "accept-version:1.2\n" +
     "host:localhost\n" +
-    "Authorization:Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJiYmYyNjNlMy0xNzdiLTQ0OTYtOTU4Yy1jZmMyOGZjM2VhODgiLCJpYXQiOjE3ODc3ODUzNDMsImV4cCI6MTc4Nzg3MTc0M30.P9QerABtkJjUXG28t8dUdpXijqcJHZ6OYUmaeJHfmR3sla-EByEJNyaRUSgfDIzr\n" +
+    "Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3OGIzZDA5MC0zM2Q3LTRkOGMtYTJhNi02ZDM5NTQ1YTRmYWIiLCJpYXQiOjE1MTYyMzkwMjJ9.0vVvj4qsNmlMP62Hz72Dgw34TLmtzxJgKUTz384PflE\n" +
     "\n" +
     "\0";
 
@@ -38,12 +31,6 @@ ws.onmessage = (event) => {
   if (message.startsWith("CONNECTED")) {
     console.log("STOMP conectado!");
 
-    // Primeiro se inscreve no chat
-    ws.send(subscribeFrame);
-
-    console.log("Inscrito no chat!");
-
-    // Depois envia a mensagem
     ws.send(sendMessage);
   }
 };

@@ -7,18 +7,27 @@ public class User {
     private UUID id;
     private String email;
     private String username;
-    private String clerkUserId;
+    private String avatarKey;
+    private boolean active2fa;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
     public User() {
     }
 
-    public User(UUID id, String email, String username, String clerkUserId, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
-        this.id = id;
+    public User(UUID id, String email, String username, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this(id, email, username, null, false, createdAt, updatedAt);
+    }
+    
+    public User(UUID id, String email, String username, String avatarKey, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+     this(id, email, username, avatarKey, false, createdAt, updatedAt);
+    }
+
+    public User(UUID id, String email, String username, String avatarKey, boolean active2fa, OffsetDateTime createdAt, OffsetDateTime updatedAt) {        this.id = id;
         this.email = email;
         this.username = username;
-        this.clerkUserId = clerkUserId;
+        this.avatarKey = avatarKey;
+        this.active2fa = active2fa;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -47,28 +56,32 @@ public class User {
         this.username = username;
     }
 
-    public String getClerkUserId() {
-        return clerkUserId;
-    }
-
-    public void setClerkUserId(String clerkUserId) {
-        this.clerkUserId = clerkUserId;
-    }
-
-    public String getUserClerkId() {
-        return clerkUserId;
-    }
-
-    public void setUserClerkId(String userClerkId) {
-        this.clerkUserId = userClerkId;
-    }
-
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
-
+    
+    public boolean isActive2fa() {
+        return active2fa;
+    }
+    
+    public void setActive2fa(boolean active2fa) {
+        this.active2fa = active2fa;
+    }
+    
+    public boolean requiresTwoFactorVerification() {
+        return active2fa;
+    }
+    
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getAvatarKey() {
+        return avatarKey;
+    }
+
+    public void setAvatarKey(String avatarKey) {
+        this.avatarKey = avatarKey;
     }
 
     public OffsetDateTime getUpdatedAt() {

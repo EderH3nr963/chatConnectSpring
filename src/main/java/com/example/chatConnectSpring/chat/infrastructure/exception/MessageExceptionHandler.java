@@ -4,12 +4,15 @@ import com.example.chatConnectSpring.chat.application.exceptions.InvalidMessageE
 import com.example.chatConnectSpring.chat.application.exceptions.MessageAccessDeniedException;
 import com.example.chatConnectSpring.chat.application.exceptions.MessageNotFoundException;
 import com.example.chatConnectSpring.shared.exception.ApiError;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class MessageExceptionHandler {
 
     @ExceptionHandler(MessageNotFoundException.class)

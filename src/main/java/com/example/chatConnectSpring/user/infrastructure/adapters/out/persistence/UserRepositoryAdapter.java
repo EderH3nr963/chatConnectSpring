@@ -3,6 +3,7 @@ package com.example.chatConnectSpring.user.infrastructure.adapters.out.persisten
 import com.example.chatConnectSpring.user.domain.model.User;
 import com.example.chatConnectSpring.user.domain.port.out.UsuarioRepository;
 import com.example.chatConnectSpring.user.infrastructure.mapper.UserMapper;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -48,13 +49,14 @@ public class UserRepositoryAdapter implements UsuarioRepository {
     }
 
     @Override
-    public User findByClerkUserId(String clerkUserId) {
-        if (clerkUserId == null) {
-            return null;
+    public List<User> findByIds(List<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
         }
-        return userJpaRepository.findByClerkUserId(clerkUserId)
+        return userJpaRepository.findAllById(ids)
+                .stream()
                 .map(UserMapper::toDomain)
-                .orElse(null);
+                .toList();
     }
 
     @Override
@@ -83,13 +85,6 @@ public class UserRepositoryAdapter implements UsuarioRepository {
     }
 
     @Override
-    public void deleteByClerkUserId(String clerkUserId) {
-        if (clerkUserId != null) {
-            userJpaRepository.deleteByClerkUserId(clerkUserId);
-        }
-    }
-
-    @Override
     public boolean existsById(UUID id) {
         if (id == null) {
             return false;
@@ -98,10 +93,14 @@ public class UserRepositoryAdapter implements UsuarioRepository {
     }
 
     @Override
-    public boolean existsByClerkUserId(String clerkUserId) {
-        if (clerkUserId == null) {
-            return false;
+    public List<User> searchByUsernameOrEmail(String q, UUID excludeId, int limit) {
+        if (q == null || q.isBlank() || excludeId == null) {
+            return List.of();
         }
-        return userJpaRepository.existsByClerkUserId(clerkUserId);
+        int safeLimit = Math.max(1, Math.min(limit, 50));
+        return userJpaRepository.searchByUsernameOrEmail(q.trim(), excludeId, PageRequest.of(0, safeLimit))
+                .stream()
+                .map(UserMapper::toDomain)
+                .toList();
     }
 }

@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateGroupChatRequestDTO(
-        @NotBlank String title,
+        @NotBlank String name,
         @Size(max = 1000) String description,
-        @NotNull @Size(min = 1) List<UUID> participants
+        @NotNull @Size(min = 1) List<UUID> memberIds
 ) {
 }

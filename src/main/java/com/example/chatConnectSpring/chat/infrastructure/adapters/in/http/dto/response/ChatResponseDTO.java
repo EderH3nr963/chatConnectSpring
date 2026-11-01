@@ -9,20 +9,20 @@ import java.util.UUID;
 
 public record ChatResponseDTO(
         UUID id,
-        String title,
+        String name,
+        String avatarUrl,
         String description,
         ChatTypeEnum chatType,
-        List<ChatParticipantResponseDTO> participants,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {
     public static ChatResponseDTO fromChat(Chat chat) {
         return new ChatResponseDTO(
                 chat.getId(),
-                chat.getTitle(),
+                chat.getName(),
+                chat.getAvatarKey(),
                 chat.getDescription(),
                 chat.getChatType(),
-                null,
                 chat.getCreatedAt(),
                 chat.getUpdatedAt()
         );
