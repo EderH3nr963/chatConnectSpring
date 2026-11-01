@@ -318,6 +318,7 @@ A API possui documentação OpenAPI 3.0 interativa disponível enquanto a aplica
 | `GET` | `/api/chat/{chatId}/messages` | Consultar histórico de mensagens | Requer Bearer Token |
 | `PATCH` | `/api/chat/{chatId}/messages/{id}` | Editar mensagem (apenas o autor) | Requer Bearer Token |
 | `DELETE` | `/api/chat/{chatId}/messages/{id}` | Excluir mensagem (autor ou `ADMIN`) | Requer Bearer Token |
+| `PATCH` | `/api/chat/{chatId}/mute` | Alternar silenciamento de notificações do chat | Requer Bearer Token |
 | `POST` | `/api/webhooks/clerk/user-created` | Webhook de criação de usuário do Clerk | Pública |
 | `POST` | `/api/webhooks/clerk/user-updated` | Webhook de atualização de usuário | Pública |
 | `POST` | `/api/webhooks/clerk/user-deleted` | Webhook de exclusão de usuário | Pública |
