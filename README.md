@@ -41,7 +41,7 @@ Backend robusto, escalável e de alta performance para comunicação em tempo re
 O **ChatConnect** é uma API moderna para mensageria instantânea projetada para suportar tanto operações síncronas (REST) quanto assíncronas bidirecionais (STOMP sobre WebSocket).
 
 A solução resolve desafios complexos de sistemas de chat:
-- **Gestão de Identidade Externa**: Autenticação delegada para o **Clerk**, eliminando a necessidade de armazenar senhas na base local e sincronizando usuários em tempo real através de webhooks seguros.
+- **Autenticação Autônoma**: Sistema proprietário de autenticação stateless via JWT, com suporte a *Refresh Tokens* em cookies `HttpOnly` para maior segurança e autenticação de dois fatores (2FA) nativa.
 - **Rastreamento de Presença Instantâneo**: Utilização de conjuntos em memória no **Redis** para registrar quais usuários estão com a sala de chat aberta, permitindo entregar mensagens sem poluição de notificações e calcular com exatidão badges de mensagens não lidas.
 - **Controle de Acesso Baseado em Papéis (RBAC)**: Diferenciação entre administradores (`ADMIN`) e membros comuns (`DEFAULT`) em grupos, com regras estritas de proteção e promoção automática de liderança.
 
@@ -115,7 +115,7 @@ O sistema adota **Arquitetura Hexagonal (Ports and Adapters)** combinada com pri
   - Spring WebSocket & STOMP Messaging
   - Spring Data Redis
   - Spring Validation (Jakarta Bean Validation)
-- **Autenticação & Identidade**: [Clerk](https://clerk.com/) (SDK Oficial `com.clerk:backend-api:6.0.0` e validação via JWKS)
+- **Autenticação & Identidade**: Spring Security & JWT Custom (com criptografia SHA-256 para Refresh Tokens)
 - **Banco de Dados Relacional**: PostgreSQL 16
 - **Versionamento de Banco de Dados**: Flyway Database Migrations
 - **Cache & Presença em Memória**: Redis (com pool de conexões `commons-pool2` / Lettuce)
@@ -128,13 +128,19 @@ O sistema adota **Arquitetura Hexagonal (Ports and Adapters)** combinada com pri
 
 ## ⚡ Funcionalidades Principais
 
-### 1. Autenticação & Identidade (Clerk)
-- Autenticação stateless via token JWT emitido pelo Clerk.
-- Verificação de token em todas as rotas privadas REST e durante o handshake STOMP `CONNECT`.
-- Sincronização automática de dados via Webhooks:
-  - `POST /api/webhooks/clerk/user-created`: Criação e persistência do usuário local.
-  - `POST /api/webhooks/clerk/user-updated`: Atualização de e-mail e username.
-  - `POST /api/webhooks/clerk/user-deleted`: Exclusão física do usuário.
+### 1. Autenticação & Identidade
+- Autenticação stateless via token JWT.
+- Rotas de gerenciamento de sessão:
+  - `POST /api/auth/login`: Autenticação por e-mail/senha.
+  - `POST /api/auth/refresh`: Renovação automática de sessão via *Refresh Token* (armazenado em Cookie `HttpOnly`).
+  - `POST /api/auth/logout`: Revogação de sessão e limpeza de cookies.
+- Fluxo de Registro e Recuperação:
+  - `POST /api/auth/pre-register` & `/api/auth/verify-registration`: Cadastro seguro com verificação de e-mail via código.
+  - `POST /api/auth/forgot-password` & `/api/auth/reset-password`: Recuperação de conta.
+- Autenticação de Dois Fatores (2FA):
+  - `POST /api/auth/2fa`: Ativação/desativação.
+  - `POST /api/auth/2fa/verify`: Validação de código.
+  - `POST /api/auth/2fa/resend`: Reenvio de código.
 
 ### 2. Gestão de Chats
 - **Chat Privado (1-on-1)**:
@@ -244,8 +250,8 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=senha123
 
-# Autenticação Clerk
-CLERK_SECRET_KEY=sk_test_sua_chave_secreta_aqui
+# Autenticação & Identidade
+CLERK_SECRET_KEY=removido_por_migracao_local
 ```
 
 > **Nota**: Ao executar via Docker Compose, substitua os hosts `localhost` por `postgres` e `redis`.
@@ -323,7 +329,9 @@ A API possui documentação OpenAPI 3.0 interativa disponível enquanto a aplica
 | `POST` | `/api/webhooks/clerk/user-updated` | Webhook de atualização de usuário | Pública |
 | `POST` | `/api/webhooks/clerk/user-deleted` | Webhook de exclusão de usuário | Pública |
 
-O login local recebe `{ "email": "...", "password": "..." }`. Refresh e logout recebem `{ "refreshToken": "..." }`. O login pressupõe que o usuário e suas credenciais já existam na base; o cadastro local de usuários/senhas ainda não faz parte dos endpoints expostos. Credenciais inválidas retornam `401` sem distinguir e-mail de senha. Refresh tokens são armazenados como SHA-256, rotacionados a cada uso e revogados no logout. Access tokens duram 15 minutos e refresh tokens 30 dias por padrão; configure `JWT_SECRET`, `JWT_ACCESS_EXPIRATION` e `JWT_REFRESH_EXPIRATION` no ambiente. O segredo padrão serve apenas para desenvolvimento local.
+- **Autenticação**: O sistema utiliza JWT autogerenciado. O cliente recebe um `accessToken` no corpo da resposta e um `refreshToken` via Cookie `HttpOnly` para renovação segura de sessão.
+- **WebSocket Handshake**: A autenticação no WebSocket STOMP utiliza o `accessToken` via header `Authorization` no frame `CONNECT`.
+- **2FA**: Suporte nativo para autenticação de dois fatores via código de verificação enviado por e-mail.
 
 ---
 
