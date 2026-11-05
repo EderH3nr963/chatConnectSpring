@@ -4,14 +4,14 @@
 
 ![Java](https://img.shields.io/badge/Java-17-orange.svg)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-brightgreen.svg)
-![Spring Security](https://img.shields.io/badge/Spring%20Security-Clerk%20JWT-blue.svg)
+![Spring Security](https://img.shields.io/badge/Spring%20Security-Custom%20JWT-blue.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)
 ![Redis](https://img.shields.io/badge/Redis-Presence%20%26%20Cache-red.svg)
 ![WebSocket](https://img.shields.io/badge/WebSocket-STOMP%20%2F%20SockJS-yellow.svg)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-Swagger%203.0-green.svg)
 
-Backend robusto, escalável e de alta performance para comunicação em tempo real, suportando chats privados (1-on-1) e em grupo, rastreamento de presença em memória com Redis, notificações STOMP e integração completa com **Clerk**.
+Backend robusto, escalável e de alta performance para comunicação em tempo real, suportando chats privados (1-on-1) e em grupo, rastreamento de presença em memória com Redis, notificações STOMP e sistema de autenticação próprio.
 
 </div>
 
@@ -56,7 +56,6 @@ O sistema adota **Arquitetura Hexagonal (Ports and Adapters)** combinada com pri
                   │          Adaptadores de Entrada         │
                   │   - REST Controllers (Spring Web MVC)   │
                   │   - WebSocket Controllers (STOMP)       │
-                  │   - Clerk Webhooks Controller           │
                   └────────────────────┬────────────────────┘
                                        │
                                        ▼
@@ -66,7 +65,7 @@ O sistema adota **Arquitetura Hexagonal (Ports and Adapters)** combinada com pri
                   │   - ChatParticipantUseCase              │
                   │   - MessageUseCase                      │
                   │   - ManagePresenceUseCase               │
-                  │   - SyncClerkUserUseCase                │
+                  │   - Auth UseCases / User UseCases       │
                   └────────────────────┬────────────────────┘
                                        │
                                        ▼
@@ -75,13 +74,14 @@ O sistema adota **Arquitetura Hexagonal (Ports and Adapters)** combinada com pri
                   │   - ChatService / MessageService        │
                   │   - ChatParticipantService              │
                   │   - ManagePresenceService / UserService │
+                  │   - AuthenticationService / Registration│
                   └────────────────────┬────────────────────┘
                                        │
                                        ▼
                   ┌─────────────────────────────────────────┐
                   │             Núcleo de Domínio           │
                   │   - Chat, Message, ChatParticipant      │
-                  │   - User, ChatTypeEnum, Roles           │
+                  │   - User, Credentials, RefreshToken     │
                   │   (POJOs puros - Sem acoplamento a ORM) │
                   └────────────────────┬────────────────────┘
                                        │
@@ -92,6 +92,7 @@ O sistema adota **Arquitetura Hexagonal (Ports and Adapters)** combinada com pri
                   │   - PresenceStateOutputPort             │
                   │   - MessageNotificationPort             │
                   │   - ChatNotificationPort                │
+                  │   - MailSender / StoragePort            │
                   └────────────────────┬────────────────────┘
                                        │
                                        ▼
@@ -100,6 +101,7 @@ O sistema adota **Arquitetura Hexagonal (Ports and Adapters)** combinada com pri
                   │   - PostgreSQL / Spring Data JPA        │
                   │   - Redis (Lettuce Connection Pool)     │
                   │   - SimpMessagingTemplate (STOMP Push)  │
+                  │   - SmtpMailSender / AWS S3 Storage     │
                   └─────────────────────────────────────────┘
 ```
 
@@ -171,6 +173,14 @@ O sistema adota **Arquitetura Hexagonal (Ports and Adapters)** combinada com pri
   - Participantes ativos na sala recebem o evento em `/topic/chat.{chatId}`.
   - Participantes inativos têm o contador `unreadMessages` incrementado no PostgreSQL e recebem notificação pessoal em `/user/queue/notifications`.
 
+### 6. Amizades & Bloqueios
+- Sistema de amizade entre usuários com busca de amigos online.
+- Funcionalidade de bloqueio de usuários para impedir interações indesejadas.
+
+### 7. Armazenamento de Arquivos (S3)
+- Integração com Amazon S3 (ou LocalStack) para upload de avatares de usuários e imagens de grupos.
+- Sistema de limpeza automática de arquivos órfãos via Outbox pattern.
+
 ---
 
 ## 📂 Estrutura do Projeto
@@ -190,18 +200,29 @@ api/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/example/chatConnectSpring/
+│   │   │   ├── auth/                     # Bounded Context de Autenticação e Segurança (Novo)
+│   │   │   │   ├── application/          # Serviços de Login, Registro, 2FA, JWT
+│   │   │   │   ├── domain/               # Entidades de Credenciais, Tokens e Portas
+│   │   │   │   └── infrastructure/       # Filtros de Segurança, Adaptadores de Persistence/Mail
 │   │   │   ├── chat/                     # Bounded Context de Chats e Mensagens
 │   │   │   │   ├── application/          # Casos de uso, services, commands e DTOs
 │   │   │   │   ├── domain/               # Entidades de domínio puras e Portas (in/out)
 │   │   │   │   └── infrastructure/       # Adaptadores HTTP, WebSocket, JPA e Redis
-│   │   │   ├── user/                     # Bounded Context de Usuários e Identidade
-│   │   │   │   ├── application/          # Serviços de sincronização e consulta
+│   │   │   ├── friendship/               # Bounded Context de Amizades e Bloqueios (Novo)
+│   │   │   │   ├── application/          # Serviços de Amizade, Bloqueio, Amigos Online
+│   │   │   │   ├── domain/               # Modelo de domínio de Amizade e Portas
+│   │   │   │   └── infrastructure/       # Adaptadores JPA e Mappers
+│   │   │   ├── presence/                 # Bounded Context de Presença (Novo)
+│   │   │   │   ├── domain/               # Portas de Notificação e Estado
+│   │   │   │   └── infrastructure/       # Adaptadores Redis e WebSocket para Presença
+│   │   │   ├── user/                     # Bounded Context de Usuários e Perfis
+│   │   │   │   ├── application/          # Serviços de consulta e atualização de perfil
 │   │   │   │   ├── domain/               # Modelo de domínio de Usuário e Portas
-│   │   │   │   └── infrastructure/       # Webhooks do Clerk, JPA e DTOs
-│   │   │   └── shared/                   # Configurações globais, segurança e exceções
-│   │   │       ├── config/               # Security, WebSocket, Redis, OpenAPI, Clerk
+│   │   │   │   └── infrastructure/       # Adaptadores JPA e Armazenamento (S3)
+│   │   │   └── shared/                   # Configurações globais, utilitários e exceções
+│   │   │       ├── config/               # Security, WebSocket, Redis, OpenAPI, S3
 │   │   │       ├── exception/            # GlobalExceptionHandler e ApiError
-│   │   │       └── security/             # HttpAuthFilter e WebSocketAuthInterceptor
+│   │   │       └── infrastructure/       # Logging (TraceIdFilter) e Utils
 │   │   └── resources/
 │   │       ├── application.properties    # Propriedades da aplicação
 │   │       └── db/migration/             # Scripts versionados de migração Flyway
@@ -231,7 +252,6 @@ Para consultar a especificação completa de requisitos do sistema:
 - **Java 17** (JDK) instalado
 - **Maven 3.9+** (ou utilizar o wrapper `./mvnw`)
 - **Docker** e **Docker Compose** instalados
-- Uma conta ativa no **[Clerk](https://clerk.com/)** com chave de API (`CLERK_SECRET_KEY`)
 
 ---
 
@@ -251,7 +271,14 @@ REDIS_PORT=6379
 REDIS_PASSWORD=senha123
 
 # Autenticação & Identidade
-CLERK_SECRET_KEY=removido_por_migracao_local
+JWT_SECRET=sua_chave_secreta_jwt_aqui
+REFRESH_TOKEN_SECRET=sua_chave_secreta_refresh_aqui
+
+# Envio de E-mails (SMTP)
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=user@example.com
+MAIL_PASSWORD=password
 ```
 
 > **Nota**: Ao executar via Docker Compose, substitua os hosts `localhost` por `postgres` e `redis`.
@@ -325,9 +352,6 @@ A API possui documentação OpenAPI 3.0 interativa disponível enquanto a aplica
 | `PATCH` | `/api/chat/{chatId}/messages/{id}` | Editar mensagem (apenas o autor) | Requer Bearer Token |
 | `DELETE` | `/api/chat/{chatId}/messages/{id}` | Excluir mensagem (autor ou `ADMIN`) | Requer Bearer Token |
 | `PATCH` | `/api/chat/{chatId}/mute` | Alternar silenciamento de notificações do chat | Requer Bearer Token |
-| `POST` | `/api/webhooks/clerk/user-created` | Webhook de criação de usuário do Clerk | Pública |
-| `POST` | `/api/webhooks/clerk/user-updated` | Webhook de atualização de usuário | Pública |
-| `POST` | `/api/webhooks/clerk/user-deleted` | Webhook de exclusão de usuário | Pública |
 
 - **Autenticação**: O sistema utiliza JWT autogerenciado. O cliente recebe um `accessToken` no corpo da resposta e um `refreshToken` via Cookie `HttpOnly` para renovação segura de sessão.
 - **WebSocket Handshake**: A autenticação no WebSocket STOMP utiliza o `accessToken` via header `Authorization` no frame `CONNECT`.
@@ -341,7 +365,7 @@ Consulte a documentação completa em **[`docs/websocket.md`](docs/websocket.md)
 
 ### Conexão e Handshake
 - **Endpoint**: `ws://localhost:8080/ws` (ou via SockJS em `http://localhost:8080/ws`)
-- **Autenticação**: Envie o header nativo `Authorization: Bearer <CLERK_JWT_TOKEN>` no frame STOMP `CONNECT`.
+- **Autenticação**: Envie o header nativo `Authorization: Bearer <JWT_TOKEN>` no frame STOMP `CONNECT`.
 
 ### Comandos do Cliente (Envio)
 - **Enviar Mensagem**: Destino `/app/chat.sendMessage`
@@ -382,4 +406,4 @@ O projeto possui suíte de testes unitários cobrindo as regras de negócio dos 
 
 ## 📄 Licença
 
-Este projeto é desenvolvido para fins de demonstração e integração de arquiteturas distribuídas com Spring Boot, Redis e Clerk. Distribuído sob os termos da licença livre de sua organização.
+Este projeto é desenvolvido para fins de demonstração e integração de arquiteturas distribuídas com Spring Boot, Redis e WebSocket. Distribuído sob os termos da licença livre de sua organização.
