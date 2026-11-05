@@ -3,8 +3,6 @@ package com.example.chatConnectSpring.auth.infrastructure.security.http;
 import com.example.chatConnectSpring.auth.domain.model.vo.AccessTokenString;
 import com.example.chatConnectSpring.auth.domain.ports.out.TokenIssuer;
 import com.example.chatConnectSpring.auth.infrastructure.security.UserDetailsImpl;
-import com.example.chatConnectSpring.user.domain.model.User;
-import com.example.chatConnectSpring.user.domain.port.in.UserUseCase;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,11 +21,9 @@ import java.util.UUID;
 @Component
 public class HttpAuthFilter extends OncePerRequestFilter {
 
-    private final UserUseCase userUseCase;
     private final TokenIssuer tokenIssuer;
 
-    public HttpAuthFilter(UserUseCase userUseCase, TokenIssuer tokenIssuer) {
-        this.userUseCase = userUseCase;
+    public HttpAuthFilter(TokenIssuer tokenIssuer) {
         this.tokenIssuer = tokenIssuer;
     }
 
@@ -60,8 +56,7 @@ public class HttpAuthFilter extends OncePerRequestFilter {
         ensureValidAccessToken(token);
         String userId = tokenIssuer.extractSubject(token);
         ensureSubjectPresent(userId);
-        User user = findUserOrFail(userId);
-        setAuthentication(user, request);
+        setAuthentication(UUID.fromString(userId), request);
     }
 
     private void ensureValidAccessToken(AccessTokenString token) {
@@ -76,16 +71,8 @@ public class HttpAuthFilter extends OncePerRequestFilter {
         }
     }
 
-    private User findUserOrFail(String userId) {
-        User user = userUseCase.findById(UUID.fromString(userId));
-        if (user == null) {
-            throw new BadCredentialsException("Invalid access token");
-        }
-        return user;
-    }
-
-    private void setAuthentication(User user, HttpServletRequest request) {
-        UserDetailsImpl userDetails = new UserDetailsImpl(user);
+    private void setAuthentication(UUID userId, HttpServletRequest request) {
+        UserDetailsImpl userDetails = new UserDetailsImpl(userId);
         UsernamePasswordAuthenticationToken authentication =
                 UsernamePasswordAuthenticationToken.authenticated(userDetails, null, userDetails.getAuthorities());
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

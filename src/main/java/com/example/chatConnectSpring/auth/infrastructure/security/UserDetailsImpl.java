@@ -18,6 +18,11 @@ public class UserDetailsImpl implements UserDetails {
         this.username = user.getEmail();
     }
 
+    public UserDetailsImpl(UUID userId) {
+        this.id = userId;
+        this.username = "";
+    }
+
     public UUID getId() {
         return id;
     }
